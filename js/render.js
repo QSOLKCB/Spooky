@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Canvas presentation only; projected targets and inverse aiming share one model.
 import {clamp,seededRandom} from '../vendor/vanillajs/modules/math/index.js';
-import {ENEMIES} from './content.js';
+import {ENEMIES,explosionProfile} from './content.js';
 import {weaponStats} from './sim.js';
 import {BUILDINGS,sectorForRound} from './world.js';
 export const WIDTH=1152, HEIGHT=720;
@@ -16,6 +16,13 @@ export function unproject(station,px,py){
   const near=station==='infantry',depth=(near?15000:23000)/Math.max(1,py-(near?130:105));
   const z=clamp((near?127:156)-depth,4,96),f=(near?720:700)/((near?127:156)-z);
   return {x:clamp((px-576)/f,-52,52),z};
+}
+// Clip world-plane blast guides to the playable field before perspective projection.
+// This keeps maximum-rank blasts finite near the camera and matches the damage circle.
+export function blastOutline(station,x,z,radius){
+  return Array.from({length:64},(_,i)=>{const angle=i*Math.PI/32;
+    const p=project(station,clamp(x+Math.cos(angle)*radius,-52,52),clamp(z+Math.sin(angle)*radius,4,96));
+    return [p.x,p.y];});
 }
 export function enemyBounds(station,e){
   const p=project(station,e.x,e.z),u=p.scale*ENEMIES[e.kind].size;
@@ -160,27 +167,30 @@ export function createRenderer(canvas){
     for(const r of s.remains){const p=project(s.station,r.x,r.z),u=p.scale;ctx.globalAlpha=Math.min(1,(600-r.age)/120);
       ellipse(p.x,p.y,7*u,2.6*u,'#151f1b88');rect(p.x-4*u,p.y-2*u,7*u,2*u,s.station==='gunship'?'#849477':'#465441');rect(p.x+4*u,p.y-u,2*u,2*u,'#8c9974');ctx.globalAlpha=1;}
   }
+  function blastRing(s,x,z,radius,color,width=1){
+    const points=blastOutline(s.station,x,z,radius);line([...points,points[0]],color,width);
+  }
   function effects(s,reducedMotion=false){
     for(const shot of s.shells){
-      const landing=project(s.station,shot.x,shot.z),r=shot.radius*landing.scale;
-      ctx.setLineDash([4,5]);ctx.strokeStyle='#ebcd8b90';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(landing.x,landing.y,r*1.8,r*.65,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+      ctx.setLineDash([4,5]);blastRing(s,shot.x,shot.z,shot.radius,'#ebcd8b90');ctx.setLineDash([]);
       if(shot.position){const v=shot.position,p=project(s.station,v.x,v.z,v.y),q=project(s.station,v.x-shot.velocity.x/100,v.z-shot.velocity.z/100,v.y-shot.velocity.y/100);
         line([[q.x,q.y],[p.x,p.y]],'#edcf8aa0',4);line([[q.x,q.y],[p.x,p.y]],'#fff6cc',1.6);ellipse(p.x,p.y,2.5,2.5,'#fffbd9');}
     }
     for(const e of s.effects){
       const p=project(s.station,e.x,e.z),t=e.age/e.life;
       if(e.type==='blast'){
-        const heavy=e.radius>5,u=p.scale,r=Math.max(4,e.radius*u),early=Math.max(0,1-e.age/12);
+        const heavy=e.radius>5,profile=explosionProfile(e.weapon,e.radius),u=p.scale,r=Math.max(4,e.radius*u)*profile.visualScale,early=Math.max(0,1-e.age/12);
         if(early&&!reducedMotion){const light=ctx.createRadialGradient(p.x,p.y,1,p.x,p.y,r*5);light.addColorStop(0,`rgba(255,222,143,${early*.65})`);light.addColorStop(1,'#ffd89800');ctx.fillStyle=light;ctx.fillRect(p.x-r*5,p.y-r*5,r*10,r*10);}
-        const ring=Math.min(1,e.age/(heavy?25:10));ctx.strokeStyle=`rgba(236,224,177,${(1-ring)*.75})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,r*(.3+ring*3),r*(.1+ring*.95),0,0,Math.PI*2);ctx.stroke();
+        const ring=Math.min(1,e.age/profile.ringTicks),spread=1-(1-ring)**3;
+        blastRing(s,e.x,e.z,e.radius*spread,`rgba(236,224,177,${(1-ring)*.75})`,e.weapon==='howitzer'?3:2);
         const rand=seededRandom(e.seed||1);
-        for(let j=0;j<(heavy?10:4);j++){
-          const a=rand()*6.28,size=(.35+rand()*.55)*r,spread=rand(),cx=p.x+Math.cos(a)*r*spread*(.3+t*2),cy=p.y+Math.sin(a)*r*.3-e.age*u*(.3+spread*.3);
-          const flame=Math.max(0,1-e.age/(heavy?25:10));
+        for(let j=0;j<profile.puffs;j++){
+          const a=rand()*6.28,size=(.35+rand()*.55)*r,spread=rand(),cx=p.x+Math.cos(a)*r*spread*(.3+t*2),cy=p.y+Math.sin(a)*r*.3-e.age*u*(.3+spread*.3)*profile.plume;
+          const flame=Math.max(0,1-e.age/profile.flameTicks);
           ellipse(cx,cy,size*(.4+t),size*(.35+t),`rgba(37,43,35,${(1-t)*.34})`);
           if(flame){ellipse(cx,cy,size*flame,size*flame,`rgba(255,${Math.round(130+flame*90)},75,${flame*.8})`);ellipse(cx,cy,size*flame*.55,size*flame*.55,`rgba(255,246,195,${flame})`);}
         }
-        if(heavy&&e.age<40)ellipse(p.x,p.y,r*(1+e.age*.06),r*(.25+e.age*.015),`rgba(173,150,97,${(1-e.age/40)*.16})`);
+        if(heavy&&e.age<profile.ringTicks*2){const dust=e.age/(profile.ringTicks*2),points=blastOutline(s.station,e.x,e.z,e.radius*(.4+.6*dust));poly(points,`rgba(173,150,97,${(1-dust)*.14})`);}
       }else if(e.type==='kill')text(e.critical?'CRITICAL +'+e.points:'+'+e.points,p.x,p.y-25-t*30,`rgba(238,219,166,${1-t})`,e.critical?13:11,'center');
       else if(e.type==='tracer'&&(e.key==='m2'||e.key==='gatling'))line([e.key==='m2'?[576,503]:[-40,105],[p.x,p.y-(e.targetKind?p.scale*ENEMIES[e.targetKind].size*(e.head?16:10):0)]],`rgba(255,238,175,${(1-t)*.8})`,1.8);
     }
@@ -213,7 +223,8 @@ export function createRenderer(canvas){
     ctx.restore();
   }
   function reticle(s,cursor){
-    const ground=project(s.station,s.aim.x,s.aim.z),p=cursor||ground,w=s.weapons[s.weapon],stats=weaponStats(s),r=Math.max(13,stats.radius*ground.scale*(s.station==='gunship'?3:1.8));
+    const ground=project(s.station,s.aim.x,s.aim.z),p=cursor||ground,w=s.weapons[s.weapon],stats=weaponStats(s),r=16;
+    if(stats.radius>5){ctx.setLineDash([6,7]);blastRing(s,s.aim.x,s.aim.z,stats.radius,'#e3f3b852');ctx.setLineDash([]);}
     const c=w.overheated?'#ee9165':w.reload?'#c5b67e':'#e3f3b8';
     ctx.strokeStyle=c;ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.stroke();
     for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])line([[p.x+dx*(r+5),p.y+dy*(r+5)],[p.x+dx*(r+17),p.y+dy*(r+17)]],c,2);

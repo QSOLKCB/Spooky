@@ -1,28 +1,57 @@
 // SPDX-License-Identifier: Apache-2.0
+import {explosionProfile} from './content.js';
 import {createSound2D} from '../vendor/vanillajs/modules/audio2d/index.js';
 import {createSoundtrack} from '../vendor/vanillajs/modules/soundtrack/index.js';
 import {createSoundtrackPlayer} from '../vendor/vanillajs/api/audio/index.js';
 const STATIONS=['gunship','artillery','infantry'];
+// Last Light March: original 16-bar D-minor theme, 120 BPM, four integer PCM lanes.
+// Tuples are [eighth-note onset, eighth-note length, frequency in integer Hz].
+const MARCH_THEME = [
+  [[0,2,294],[2,1,294],[3,1,349],[4,2,440],[6,2,392],[8,2,349],[10,1,330],[11,1,349],[12,3,294]],
+  [[0,2,349],[2,1,392],[3,1,440],[4,3,523],[8,2,466],[10,2,440],[12,3,392]],
+  [[0,2,440],[2,1,440],[3,1,523],[4,2,587],[6,2,523],[8,2,466],[10,1,440],[11,1,392],[12,3,349]],
+  [[0,2,330],[2,2,349],[4,2,392],[6,2,330],[8,2,277],[10,2,330],[12,3,440]],
+  [[0,2,587],[2,1,523],[3,1,440],[4,2,349],[6,2,440],[8,2,392],[10,1,349],[11,1,330],[12,3,294]],
+  [[0,2,466],[2,1,440],[3,1,392],[4,3,349],[8,2,392],[10,2,440],[12,3,523]],
+  [[0,2,440],[2,1,349],[3,1,440],[4,2,587],[6,2,659],[8,2,698],[10,1,659],[11,1,587],[12,2,554],[14,1,440]],
+  [[0,2,392],[2,2,330],[4,2,277],[6,2,330],[8,2,440],[10,2,349],[12,4,294]]
+];
 export function makeScore(station='gunship'){
   if(!STATIONS.includes(station))throw new TypeError('Unknown soundtrack station');
-  const roots=station==='gunship'?[65,65,78,58,65,87,78,58]:station==='artillery'?[55,55,65,49,55,73,65,49]:[82,82,98,73,82,110,98,73];
-  return createSoundtrack({tickRate:60,phrases:roots.map((root,phrase)=>{
+  const arrangement=STATIONS.indexOf(station),beat=24000,eighth=12000;
+  const roots=[147,175,175,110,147,117,147,110],fifths=[220,262,262,165,220,175,220,165];
+  return createSoundtrack({tickRate:60,phrases:MARCH_THEME.map((melody,phrase)=>{
     const events=[];let id=1;
     const note=(channel,sample,duration,frequency,gain,wave,seed=0)=>events.push({id:id++,channel,sample,duration,frequency,gain,wave,seed});
-    for(let beat=0;beat<8;beat++){
-      note(0,beat*24000,station==='infantry'?14000:21000,beat%4===3?root*2:root,station==='gunship'?1500:2100,station==='infantry'?'saw':'triangle');
-      note(1,beat*24000,beat%2?6500:11000,beat%2?170:station==='artillery'?38:46,beat%2?1300:3100,beat%2?'noise':'triangle',phrase*99+beat);
-      for(let off=0;off<2;off++)note(2,beat*24000+off*12000,station==='artillery'?3300:1600,3000,off?240:420,'noise',beat+off+17);
-      if(station==='infantry'){
-        for(let off=0;off<2;off++)note(3,beat*24000+off*12000,9000,Math.round(root*[4,6,5,3][(beat+off+phrase)%4]),430,'triangle');
-      }else if(beat%2===0)note(3,beat*24000+6000,station==='gunship'?37000:19000,Math.round(root*[4,6,5,3][beat/2]),phrase>1?650:380,'triangle');
+    // Bass drum downbeats alternate with a short pitched marching-bass response.
+    for(let b=0;b<8;b++){
+      note(0,b*beat,8500,station==='artillery'?38:46,b%2===0?3300:2100,'triangle');
+      note(0,b*beat+eighth,9500,b%2?fifths[phrase]:roots[phrase],station==='gunship'?1050:1500,'triangle');
+      // A field snare with quiet ghost strokes and accented backbeats.
+      const hit=b*beat;note(1,hit,b===7?2300:station==='artillery'?4300:3000,1800,b%2?1900:900,'noise',13013+phrase*131+b*17+arrangement*997);
+      if(b===7){
+        // The turnaround roll ends before the next phrase's downbeat.
+        for(let roll=1;roll<8;roll++)note(1,hit+roll*3000,2300,2200,650+roll*130,'noise',phaseSeed(phrase,roll,arrangement));
+      }else if(station==='infantry'||b===3||b===6){
+        note(1,hit+12000,2200,2200,station==='infantry'?850:500,'noise',phaseSeed(phrase,b,arrangement));
+        if(station==='infantry'&&b%2)note(1,hit+18000,1800,2400,550,'noise',phaseSeed(phrase,b+8,arrangement));
+      }
+    }
+    for(const [onset,length,pitch] of melody){
+      const sample=onset*eighth,duration=length*eighth-1400;
+      // Saw/square fundamentals plus a quieter horn harmony make a brass-like call.
+      const lead=station==='gunship'?Math.round(pitch/2):pitch;
+      note(2,sample,duration,lead,station==='infantry'?1500:1250,station==='artillery'?'saw':'square');
+      const harmony=phrase===7&&onset===12?147:(onset<8?roots[phrase]:fifths[phrase]);
+      note(3,sample+400,Math.max(1,duration-800),station==='infantry'?harmony*2:harmony,650,'triangle');
     }
     return {frames:192000,events};
   })});
 }
+function phaseSeed(phrase,stroke,arrangement){return (47047+phrase*65537+stroke*977+arrangement*1597)>>>0;}
 export function makeEffect(type,variant=0){
-  const specs={gatling:[.18,82,6800],m2:[.23,70,7600],bofors:[.46,49,9000],howitzer:[.82,35,10000],battery:[.95,32,10500],
-    impact:[.85,43,7700],breach:[.3,95,4500],clear:[.65,523,4000],reload:[.26,950,2300],hot:[.25,330,2400],lost:[.9,65,4000]};
+  const specs={gatling:[.18,82,6800],m2:[.23,70,7600],bofors:[.46,49,9000],howitzer:[1.35,32,10500],battery:[.95,32,10500],
+    impact:[.85,43,7700],impact105:[1.8,30,10000],breach:[.3,95,4500],clear:[.65,523,4000],reload:[.26,950,2300],hot:[.25,330,2400],lost:[.9,65,4000]};
   const [duration,freq,gain]=specs[type]||specs.impact,frames=Math.round(duration*48000),tone=['clear','hot','lost'].includes(type),v=(variant>>>0)%4;
   const events=[];let id=1;
   const add=(channel,sample,length,frequency,volume,wave)=>events.push({id:id++,channel,sample,duration:Math.max(1,Math.min(length,frames-sample)),frequency:Math.round(frequency),gain:Math.round(volume),wave,seed:13013+v*977+id*79});
@@ -75,7 +104,7 @@ export function createAudio(onFailure=()=>{}){
     },
     event(event,enabled){
       if(!enabled||!master||ctx.state!=='running'||failed||voices.size>=24)return;
-      const key=event.type==='fire'?event.weapon:event.type==='impact'?(event.heavy?'impact':null):event.type;
+      const key=event.type==='fire'?event.weapon:event.type==='impact'?(event.heavy?explosionProfile(event.weapon,6).sound:null):event.type;
       if(!key||key==='round')return;
       const variant=(event.seed>>>0)%4,cacheKey=key+':'+variant,v={source:null,gain:null,pan:null};
       try{

@@ -20,6 +20,14 @@
 - [x] Station-specific soundtracks, layered spatial FX and three WAV exports.
 - [x] Seeded physics/audio checks and browser fullscreen/layout/visual evidence.
 
+## Gunship and march update
+
+- [x] 40 mm inherits the previous 105 mm damage and splash radius.
+- [x] 105 mm gains a much wider damage footprint, larger explosion, more debris and a heavier report.
+- [x] Projected landing/blast guides agree with world-space damage range.
+- [x] Original deterministic Last Light March with three arrangements and full WAV export.
+- [x] AC-47 namesake story, original README banner and soundtrack preview.
+
 ## Possible next operations — not implemented
 
 - Data-only mod packs and an in-game operation/upgrade editor.

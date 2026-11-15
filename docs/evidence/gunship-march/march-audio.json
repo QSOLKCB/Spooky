@@ -1,0 +1,32 @@
+{
+  "title": "Last Light March",
+  "bpm": 120,
+  "bars": 16,
+  "lanes": 4,
+  "stations": {
+    "gunship": {
+      "frames": 1536000,
+      "loopTicks": 1920,
+      "bytes": 3072044,
+      "sha256": "6e35bb968e2630334070824cb635e0a504ab39a1cd1717726b36bac4e4572244"
+    },
+    "artillery": {
+      "frames": 1536000,
+      "loopTicks": 1920,
+      "bytes": 3072044,
+      "sha256": "515fe5d3bfa791f974251d66762e37b9da9201945dd5c96299ecf131cfe8ac63"
+    },
+    "infantry": {
+      "frames": 1536000,
+      "loopTicks": 1920,
+      "bytes": 3072044,
+      "sha256": "dbc0ac1ba162422db8d3e73b3140b59ed96cdc81d8ebe5b35916962f15edaeca"
+    }
+  },
+  "preview": {
+    "station": "infantry",
+    "seconds": 8,
+    "bytes": 768044,
+    "sha256": "e7fa223a1d2c630ef7759cec40381e058a0e2e3896b558d077c59d9e511418a3"
+  }
+}

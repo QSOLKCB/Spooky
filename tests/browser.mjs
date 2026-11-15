@@ -144,6 +144,39 @@ try{
       }
     }finally{await vc.close();}
   });
+  await check('105 mm has a much larger visible blast and finite effects at full upgrades',async()=>{
+    const vc=await browser.newContext({viewport:{width:1440,height:1000}});
+    try{
+      await vc.addInitScript(installAnimationClock);const p=await vc.newPage();p.on('pageerror',e=>receipt.errors.push(e.message));
+      await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
+      const result=await p.evaluate(async()=>{
+        const {create,step,selectWeapon,weaponStats}=await import('./js/sim.js'),{createRenderer,project}=await import('./js/render.js');
+        const pictures=[],areas=[];
+        for(const index of [1,2]){
+          const s=create();s.fuel=[];s.nextSpawn=100000;s.tick=s.roundTick=200;s.aim={x:0,z:55};selectWeapon(s,index);
+          const canvas=document.createElement('canvas'),renderer=createRenderer(canvas),cursor=project(s.station,0,55),context=canvas.getContext('2d');
+          renderer.draw(s,{cursor});const before=context.getImageData(0,0,1152,720).data;
+          step(s,{x:0,z:55,fire:true});for(let i=1;i<weaponStats(s).flight+8;i++)step(s);
+          const frozen=JSON.stringify(s);renderer.draw(s,{cursor});if(JSON.stringify(s)!==frozen)throw new Error('blast rendering changed combat');
+          const after=context.getImageData(0,0,1152,720).data;let area=0;
+          for(let i=0;i<after.length;i+=4)if(Math.abs(after[i]-before[i])+Math.abs(after[i+1]-before[i+1])+Math.abs(after[i+2]-before[i+2])>35)area++;
+          areas.push(area);pictures.push(canvas.toDataURL('image/jpeg',.9));
+          const normal=canvas.toDataURL();renderer.draw(s,{cursor});if(canvas.toDataURL()!==normal)throw new Error('blast rendering is not repeatable');
+          renderer.draw(s,{cursor,reducedMotion:true});
+        }
+        // Exercise the largest supported radius near every perspective camera edge.
+        for(const station of ['gunship','artillery','infantry']){
+          const s=create();s.fuel=[];s.nextSpawn=100000;s.station=station;s.weapon='howitzer';s.upgrades.gunship.radius=6;
+          step(s,{x:52,z:96,fire:true});for(let i=1;i<weaponStats(s).flight+20;i++)step(s);
+          const canvas=document.createElement('canvas'),renderer=createRenderer(canvas);renderer.draw(s,{reducedMotion:true});
+        }
+        return {areas,pictures};
+      });
+      assert.ok(result.areas[1]>result.areas[0]*3,`105 mm visible blast covers >3x as many pixels: ${result.areas}`);
+      fs.writeFileSync(path.join(out,'gunship-blast-comparison.json'),JSON.stringify({changedPixels40:result.areas[0],changedPixels105:result.areas[1],threshold:'sum of RGB absolute differences > 35',age:9},null,2)+'\n');
+      for(let i=0;i<2;i++)fs.writeFileSync(path.join(out,`blast-${i===0?'40mm':'105mm'}.jpg`),Buffer.from(result.pictures[i].split(',')[1],'base64'));
+    }finally{await vc.close();}
+  });
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
   page.on('pageerror',e=>receipt.errors.push(e.message));
   await context.addInitScript(installAnimationClock);

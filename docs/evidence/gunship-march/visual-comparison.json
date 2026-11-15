@@ -1,0 +1,6 @@
+{
+  "changedPixels40": 6210,
+  "changedPixels105": 55512,
+  "threshold": "sum of RGB absolute differences > 35",
+  "age": 9
+}

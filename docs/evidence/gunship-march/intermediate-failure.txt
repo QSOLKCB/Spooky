@@ -1,0 +1,61 @@
+✔ original 32-second score is deterministic, non-silent and wraps at exact ticks (185.329168ms)
+✔ every station has distinct deterministic sound effects and valid WAV output (32.804292ms)
+✔ missing audio device is contained and never escapes into combat (1.484924ms)
+✔ all three complete station arrangements export distinct repeatable loops (2249.819694ms)
+✔ spatial effects preserve tick spacing, remain bounded and survive music being disabled (91.294756ms)
+✔ partial voice failures release allocated nodes and a new gesture recovers audio (3.185453ms)
+✔ VANILLAJS shell integration follows gravity and reaches the selected impact on its flight tick (4.779351ms)
+✖ surviving targets receive radial impulse and heavy bodies resist displacement (25.345467ms)
+✔ crowds navigate building footprints without tunnelling or becoming stuck (86.535691ms)
+✔ fuel chains detonate each drum once and do not award extra kills or shot accuracy (1.703404ms)
+✔ head picking yields a single-target critical hit for the direct-fire weapons (1.154281ms)
+✔ seeded debris bounces, settles and expires while presentation storage stays bounded (7.133419ms)
+✔ seed and difficulty validation rejects malformed public construction (4.61957ms)
+✔ seeded input streams reproduce full state including choices (739.679959ms)
+✔ a real nine-round run rotates stations, escalates hordes and retains upgrades (178.21949ms)
+✔ every weapon hits real targets and heavy blasts damage groups once (5.683223ms)
+✔ artillery has a real delay and leading a moving target matters (1.365649ms)
+✔ magazines, manual reload and automatic empty reload preserve cadence (1.136288ms)
+✔ switching gunship weapons cannot refill or cancel their reload/cooldown (0.381518ms)
+✔ M2 overheats, refuses shots during recovery and becomes usable again (2.707614ms)
+✔ cooling, capacity, radius, damage and rate upgrades change actual weapon stats (0.473771ms)
+✔ a breach damages the outpost exactly once; loss freezes every field (0.683877ms)
+✔ passive play really loses; several seeds expose all enemy classes (2171.957915ms)
+✔ upgrade choices are transactional and capped upgrades become field repairs (0.579139ms)
+✔ terminal wave waits for in-flight shells; offers remain three distinct IDs at rank limits (0.566716ms)
+✔ nonfinite aim is ignored, finite aim clamps, and untrusted indices are inert (0.337164ms)
+✔ ground projection inverts across all stations and the whole play area (0.609617ms)
+✔ clicking visible heads and torsos targets the body rather than distant terrain (1.064653ms)
+✔ fixed clock produces identical combat at 30/60/120/144 Hz with bounded catch-up (58.875119ms)
+✔ seed sweep maintains finite state and bounded effects during actual combat (1226.542076ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 29
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4738.056313
+
+✖ failing tests:
+
+test at tests/physics.test.js:19:1
+✖ surviving targets receive radial impulse and heavy bodies resist displacement (25.345467ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(e.hp<500&&e.hp>0)
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/db4b0de70b71/Spooky/tests/physics.test.js:27:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

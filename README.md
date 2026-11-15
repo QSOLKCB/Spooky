@@ -1,3 +1,5 @@
+![SPOOKY — Last Light. An original AC-47 Spooky tribute banner.](docs/assets/spooky-banner.webp)
+
 # SPOOKY — Last Light
 
 **Three stations. One last line.**
@@ -5,6 +7,12 @@
 An original, offline-first horde defence game built with [VANILLAJS](https://github.com/QSOLKCB/VANILLAJS). Command an AC-130 gunship, move to the artillery battery, then take the M2 at the wire. The next wave is bigger. Your upgrades stay with you.
 
 [Play on GitHub Pages](https://qsolkcb.github.io/Spooky/) · [Field manual](docs/GAMEPLAY.md) · [Engineering and provenance](docs/ARCHITECTURE.md)
+
+## Why Spooky?
+
+The name honours the **Douglas AC-47 Spooky**, the C-47-based aircraft that pioneered the US Air Force's operational side-firing gunship role before the AC-130. The banner pays tribute to that namesake; the game follows the later AC-130 into an original night-defence scenario.
+
+Read about the [AC-47 Spooky](https://en.wikipedia.org/wiki/Douglas_AC-47_Spooky) and the National Museum of the US Air Force's [Gunship I: Spooky](https://www.nationalmuseum.af.mil/Visit/Museum-Exhibits/Fact-Sheets/Display/Article/195865/gunship-i-spooky/). The banner is original generated concept art; [its prompt and provenance](docs/BANNER.md) are included.
 
 ## The operation
 
@@ -18,6 +26,30 @@ Clear a round and choose **one of three upgrades** for the station you just used
 
 The outpost automatically recovers 8 integrity between rounds; the incoming station is resupplied. Runners enter from round 2 and armoured bulwarks from round 3. There is no final wave: survive until the perimeter falls.
 
+## Make the heavy gun count
+
+The gunship weapons have distinct jobs. The **40 mm now has the former 105 mm's damage and radius**. The **105 mm** delivers almost three times that damage across **5.6× the nominal area**, with a much larger fireball, expanding ground shockwave, lingering smoke, extra debris and a deeper report.
+
+| Weapon | Base damage | Blast radius, game units | Role |
+| --- | ---: | ---: | --- |
+| 25 mm | 30 | 2.6 | Fast precision fire and headshots |
+| 40 mm | 135 | 11 | Rapid cluster-clearing splash |
+| 105 mm | 400 | 26 | Deliberate, massive area-clearing strikes |
+
+Damage outlines now project the actual world-space footprint. The centre crosshair stays small enough to aim accurately. [Balance rationale, historical sources and comparison captures](docs/GUNSHIP_BALANCE.md).
+
+## Last Light March
+
+An original **120 BPM military march**, composed and synthesised with VANILLAJS: marching bass drums, accented field snares, turnaround rolls, brass-style calls and low horn harmonies. Its 16 bars form a 32-second loop, with three station arrangements:
+
+- **Spectre march:** low-register gunship brass and restrained ghost strokes.
+- **Thunder march:** deeper field drums and a full brass lead for artillery.
+- **Last line march:** brighter infantry calls and busier snare cadences.
+
+[Listen to an eight-second infantry preview (WAV)](docs/assets/last-light-march-preview.wav). In the game, open the field manual, select an arrangement and **DOWNLOAD MARCH · WAV** to export the complete track. Music and FX have independent switches.
+
+The score uses four bounded integer-PCM lanes and fixed note/noise seeds. Identical station scores produce identical WAV bytes; arbitrary render chunks match uninterrupted rendering. Playback follows the simulation tick and resumes at the correct musical position after a pause. Everything is generated locally and works offline.
+
 ## Included
 
 - Three pixel/voxel views with articulated characters, armoured bulwarks, shaded buildings, trees, trenches, searchlights and rotating lighting palettes.
@@ -25,7 +57,7 @@ The outpost automatically recovers 8 integrity between rounds; the incoming stat
 - Enemies steer around solid buildings and separate from nearby horde members.
 - Increasing hordes, three enemy classes, three difficulty settings, chain bonuses and separate local best scores per difficulty.
 - Six upgrade choices, deterministic three-card drafts, persistent station builds and independent gunship ammunition/reload state.
-- Three original 32-second station soundtracks, layered weapon reports, stereo positioning, bounded voices and selectable WAV export.
+- Three deterministic arrangements of Last Light March, layered weapon reports, stereo positioning, bounded voices and selectable full-loop WAV export.
 - **Fit window, Fullscreen and Windowed page**, brought across from [Outruin PR #4](https://github.com/QSOLKCB/Outruin/pull/4). The full battlefield, HUD and touch controls fit within the available window.
 - Mouse, keyboard, touch and standard gamepad controls. Automatic pause on focus or display changes and explicit resume.
 - Offline caching after the first complete visit. No account, backend, CDN, runtime package install or downloaded art.
@@ -69,6 +101,8 @@ Serve `dist/`. The build uses only Node's standard library and copies an explici
 
 ## Verify
 
+The gunship/march update passes **35 unit tests and 17 packaged Chromium scenarios**. [Current validation and source-bound receipts](docs/GUNSHIP_BALANCE.md#validation).
+
 ```sh
 node scripts/check.mjs
 node --test tests/*.test.js
@@ -87,6 +121,6 @@ CI runs on every PR and main-branch push. A successful main run publishes its ve
 
 ## Build your own night
 
-Game data lives in `js/content.js`; combat and wave rules in `js/sim.js`; shared scenery in `js/world.js`; motion in `js/physics.js`; the three views in `js/render.js`; soundtrack and effects in `js/audio.js`. These are ordinary inspectable ES modules. See [the architecture notes](docs/ARCHITECTURE.md) before changing simulation or vendor files. This release supports source edits, not an in-game mod-pack editor.
+Game data lives in `js/content.js`; combat and wave rules in `js/sim.js`; shared scenery in `js/world.js`; motion in `js/physics.js`; the three views in `js/render.js`; soundtrack and effects in `js/audio.js`, including the editable `MARCH_THEME` note sequence. These are ordinary inspectable ES modules. See [the architecture notes](docs/ARCHITECTURE.md) before changing simulation or vendor files. This release supports source edits, not an in-game mod-pack editor.
 
 Apache-2.0. Copyright 2026 Trent Slade / QSOL-IMC and contributors. Upstream licences and notices are preserved. An original arcade game, with no Call of Duty assets, music or code; weapon names are fictional gameplay context, not real weapon training.
