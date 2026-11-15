@@ -25,17 +25,53 @@ async function check(name,fn){await fn();receipt.checks.push(name);write();conso
 async function click(page,id){assert.ok(await page.locator(id).isVisible(),id+' visible');await page.locator(id).evaluate(el=>el.click());}
 async function frames(page,n){await page.evaluate(n=>window.__frames(n),n);}
 async function key(page,code,down=true){await page.evaluate(({code,down})=>window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{code,bubbles:true,cancelable:true})),{code,down});}
+function installAnimationClock(){
+  let now=0,id=0,queue=new Map();Object.defineProperty(performance,'now',{value:()=>now});
+  window.requestAnimationFrame=fn=>{queue.set(++id,fn);return id;};window.cancelAnimationFrame=id=>queue.delete(id);
+  window.__frames=n=>{for(let i=0;i<n;i++){now+=1000/60;const calls=[...queue.values()];queue.clear();calls.forEach(fn=>fn(now));}};
+}
 try{
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});receipt.browser=browser.version();
+  await check('landscape tablets show touch controls and preserve independent aim/fire/reload input',async()=>{
+    for(const [width,height] of [[1024,768],[1366,1024]]){
+      const touchContext=await browser.newContext({viewport:{width,height},hasTouch:true});
+      try{
+        await touchContext.addInitScript(installAnimationClock);
+        const tablet=await touchContext.newPage();tablet.on('pageerror',e=>receipt.errors.push(e.message));
+        await tablet.goto(url);await tablet.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});await frames(tablet,2);
+        assert.ok(await tablet.evaluate(()=>innerWidth>850&&matchMedia('(any-pointer: coarse)').matches),'wide touchscreen capability is active');
+        assert.ok(await tablet.locator('.touch-controls').isVisible(),`touch controls visible at ${width}px`);
+        await click(tablet,'#sound');await click(tablet,'#music');await click(tablet,'#deploy');await frames(tablet,10);
+        assert.ok(await tablet.locator('#touch-fire').isEnabled());assert.ok(await tablet.locator('#touch-reload').isEnabled());
+        assert.equal(await tablet.locator('#touch-fire').evaluate(el=>getComputedStyle(el).touchAction),'none');
+        const session=await touchContext.newCDPSession(tablet),field=await tablet.locator('#field').boundingBox(),fire=await tablet.locator('#touch-fire').boundingBox();
+        assert.ok(fire.x>=0&&fire.x+fire.width<=width&&fire.y+fire.height<=height,'fire button is in the viewport');
+        const aim={x:field.x+field.width*.55,y:field.y+field.height*.4,id:1},trigger={x:fire.x+fire.width*.5,y:fire.y+fire.height*.5,id:2};
+        await session.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+        const ammo=()=>tablet.locator('#ammo').textContent().then(Number),initial=await ammo();
+        await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aim]});await frames(tablet,12);
+        assert.equal(await ammo(),initial,'aiming alone does not fire');
+        await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aim,trigger]});await frames(tablet,12);
+        const firing=await ammo();assert.ok(firing<initial,'the separate touch button fires');
+        aim.x+=field.width*.1;
+        await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[aim,trigger]});await frames(tablet,12);
+        const moved=await ammo();assert.ok(moved<firing,'dragging aim does not cancel firing');
+        await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[aim]});await frames(tablet,12);
+        assert.ok(await ammo()<moved,'lifting the aiming finger does not cancel firing');
+        await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await frames(tablet,12);
+        const stopped=await ammo();await frames(tablet,12);assert.equal(await ammo(),stopped,'releasing fire stops firing');
+        const reload=await tablet.locator('#touch-reload').boundingBox();await tablet.touchscreen.tap(reload.x+reload.width*.5,reload.y+reload.height*.5);await frames(tablet,8);
+        assert.match(await tablet.locator('#weapon-status').textContent(),/RELOADING/);await frames(tablet,100);assert.equal(await ammo(),initial);
+        await tablet.screenshot({path:path.join(out,`tablet-${width}.png`)});await session.detach();
+      }finally{await touchContext.close();}
+    }
+  });
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
   page.on('pageerror',e=>receipt.errors.push(e.message));
-  await context.addInitScript(()=>{
-    let now=0,id=0,queue=new Map();Object.defineProperty(performance,'now',{value:()=>now});
-    window.requestAnimationFrame=fn=>{queue.set(++id,fn);return id;};window.cancelAnimationFrame=id=>queue.delete(id);
-    window.__frames=n=>{for(let i=0;i<n;i++){now+=1000/60;const calls=[...queue.values()];queue.clear();calls.forEach(fn=>fn(now));}};
-  });
+  await context.addInitScript(installAnimationClock);
   await page.goto(url);await page.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});await frames(page,2);
   await check('desktop briefing and manual are usable',async()=>{
+    assert.ok(await page.locator('.touch-controls').isHidden(),'wide mouse-only layout keeps touch controls hidden');
     assert.equal(await page.title(),'SPOOKY — Last Light');await page.screenshot({path:path.join(out,'briefing.png')});
     await click(page,'#manual-open');assert.ok(await page.locator('#manual').isVisible());await click(page,'#manual-close');
     await click(page,'#sound');await click(page,'#music');await click(page,'#deploy');await frames(page,120);
