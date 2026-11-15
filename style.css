@@ -77,3 +77,14 @@
 }
 
 .soundtrack-label{display:block;font:10px ui-monospace,monospace;color:var(--muted);margin:20px 0 8px}#soundtrack{max-width:100%;padding:10px;background:#172414;color:var(--ink);border:1px solid var(--line);margin:0 10px 10px 0}
+
+/* Scope stays available on mouse, pen and touch layouts. Aim and FIRE keep separate pointers. */
+.sniper-station .touch-controls{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.sniper-station .touch-controls>span{display:none}
+#scope{min-height:44px;min-width:72px;touch-action:manipulation}
+#scope[aria-pressed="true"]{background:var(--acid);color:#1c2816}
+.sniper-station #touch-fire{min-width:105px;min-height:44px;background:var(--acid);color:#1c2816;touch-action:none;user-select:none}
+.sniper-station #touch-reload{min-height:44px}
+#rifle-stats{color:var(--acid);font:9px/1.6 ui-monospace,monospace}
+@media(max-width:1250px){.station-route{gap:7px;font-size:9px}}
+@media(max-width:400px){.sniper-station .touch-controls{gap:5px}.sniper-station .touch-controls button{padding:8px;font-size:9px;flex:1;min-width:0}}

@@ -3,17 +3,18 @@
 import {clamp,seededRandom} from '../vendor/vanillajs/modules/math/index.js';
 import {ENEMIES,explosionProfile} from './content.js';
 import {weaponStats} from './sim.js';
+import {hitboxes,scopeZoom} from './sniper.js';
 import {BUILDINGS,sectorForRound} from './world.js';
 export const WIDTH=1152, HEIGHT=720;
 export function project(station,x,z,height=0){
   if(station==='gunship')return {x:576+x*9,y:88+z*5.5-height*5,scale:1.65};
-  const depth=station==='infantry'?127-z:156-z;
-  const factor=(station==='infantry'?720:700)/depth;
-  return {x:576+x*factor,y:(station==='infantry'?130:105)+(station==='infantry'?15000:23000)/depth-height*factor,scale:factor*.46};
+  const depth=(station==='infantry'||station==='sniper')?127-z:156-z;
+  const factor=((station==='infantry'||station==='sniper')?720:700)/depth;
+  return {x:576+x*factor,y:((station==='infantry'||station==='sniper')?130:105)+((station==='infantry'||station==='sniper')?15000:23000)/depth-height*factor,scale:factor*.46};
 }
 export function unproject(station,px,py){
   if(station==='gunship')return {x:clamp((px-576)/9,-52,52),z:clamp((py-88)/5.5,4,96)};
-  const near=station==='infantry',depth=(near?15000:23000)/Math.max(1,py-(near?130:105));
+  const near=(station==='infantry'||station==='sniper'),depth=(near?15000:23000)/Math.max(1,py-(near?130:105));
   const z=clamp((near?127:156)-depth,4,96),f=(near?720:700)/((near?127:156)-z);
   return {x:clamp((px-576)/f,-52,52),z};
 }
@@ -29,6 +30,7 @@ export function enemyBounds(station,e){
   return {left:p.x-6*u-2,right:p.x+6*u+2,top:p.y-18*u-2,bottom:p.y+2,centerX:p.x,centerY:p.y-10*u};
 }
 export function aimFromScreen(s,x,y){
+  if(s.station==='sniper')return {...unproject(s.station,x,y),sightX:x,sightY:y};
   // Intersect the displayed upright body before the ground plane. In perspective
   // views a head/torso pixel is not the terrain coordinate behind that body.
   let target=null;
@@ -114,11 +116,11 @@ export function createRenderer(canvas){
       rect(p.x-u,p.y-1.5*u,2*u,2*u,'#18241d');rect(p.x-u,p.y+.5*u,2.2*u,.5*u,'#9ba07b');}
     const door=project(st,b.x,b.z+b.depth/2),u=door.scale;
     rect(door.x-1.4*u,door.y-4.5*u,2.8*u,4.5*u,'#29382c');
-    if(b.roof==='gable'){
+    if(b.roof==='gable'&&s.station!=='sniper'){
       const r1=project(st,b.x,b.z-b.depth/2,b.height+2),r2=project(st,b.x,b.z+b.depth/2,b.height+2);
       poly(points([top[0],r1,r2,top[3]]),'#939079');poly(points([r1,top[1],top[2],r2]),'#5c6552');
       line(points([r1,r2]),'#b2ac8c',2);
-    }else{const vent=project(st,b.x+1,b.z,b.height);cube(vent.x,vent.y,4*vent.scale,2*vent.scale,2*vent.scale,'#4e5d4b','#969b78','#394b3c');}
+    }else if(s.station!=='sniper'){const vent=project(st,b.x+1,b.z,b.height);cube(vent.x,vent.y,4*vent.scale,2*vent.scale,2*vent.scale,'#4e5d4b','#969b78','#394b3c');}
     if(b.id==='relay'){
       const a=project(st,b.x,b.z,b.height),u=a.scale;line([[a.x-3*u,a.y],[a.x,a.y-23*u],[a.x+3*u,a.y]],'#adb79a',1.5);
       for(let i=1;i<5;i++)line([[a.x-2*u,a.y-i*4*u],[a.x+2*u,a.y-(i+1)*4*u]],'#9ead8c');rect(a.x-1,a.y-24*u,3,3,'#edb575');
@@ -132,7 +134,23 @@ export function createRenderer(canvas){
     for(const y of [1,3])rect(p.x-1.9*u,p.y-y*u,4*u,.5*u,'#333f2e');
     rect(p.x-.5*u,p.y-2.6*u,u,u,'#ffdfa1');
   }
+  function rifleEnemy(s,e){
+    const shade=e.flash?'#fff9d5':e.kind==='brute'?'#8e8270':['#657861','#828064','#566f70','#6e675a'][e.variant||0];
+    const p=project(s.station,e.x,e.z);ellipse(p.x,p.y,5*p.scale,1.6*p.scale,'#030b0855');
+    for(const b of hitboxes(e).sort((a,b)=>a.max[2]-b.max[2])){
+      const [x,y,z]=b.min,[X,Y,Z]=b.max;
+      const face=points=>points.map(([a,b,c])=>{const q=project(s.station,a,c,b);return [q.x,q.y];});
+      const head=b.part==='head',color=e.flash?'#fff9d5':head?'#bdc493':shade;
+      poly(face([[x,y,Z],[X,y,Z],[X,Y,Z],[x,Y,Z]]),color);
+      poly(face([[x,Y,z],[X,Y,z],[X,Y,Z],[x,Y,Z]]),head?'#e1d9aa':'#9ba384');
+      const side=e.x<0?X:x;
+      poly(face([[side,y,z],[side,y,Z],[side,Y,Z],[side,Y,z]]),head?'#7b876a':'#344638');
+      if(head)for(const side of [-1,1]){const q=project(s.station,(x+X)/2+side*(X-x)*.2,Z,Y-(Y-y)*.35);rect(q.x-1,q.y,2.3*p.scale,1*p.scale,'#ffd18b');}
+    }
+    if(e.hp<e.maxHp){const q=project(s.station,e.x,e.z,10*ENEMIES[e.kind].size);rect(q.x-6*p.scale,q.y,12*p.scale,1.2*p.scale,'#111b15');rect(q.x-6*p.scale,q.y,12*p.scale*e.hp/e.maxHp,1.2*p.scale,'#e5b77d');}
+  }
   function enemy(s,e){
+    if(s.station==='sniper'){rifleEnemy(s,e);return;}
     const p=project(s.station,e.x,e.z),u=p.scale*ENEMIES[e.kind].size,thermal=s.station==='gunship',brute=e.kind==='brute',runner=e.kind==='runner';
     const walk=Math.sin(e.stride||e.phase||0)*2.4,lean=clamp((e.vx||0)*.18,-1.5,1.5),bob=Math.abs(walk)*.18;
     const clothes=['#657861','#828064','#566f70','#6e675a'][e.variant||0];
@@ -191,7 +209,8 @@ export function createRenderer(canvas){
           if(flame){ellipse(cx,cy,size*flame,size*flame,`rgba(255,${Math.round(130+flame*90)},75,${flame*.8})`);ellipse(cx,cy,size*flame*.55,size*flame*.55,`rgba(255,246,195,${flame})`);}
         }
         if(heavy&&e.age<profile.ringTicks*2){const dust=e.age/(profile.ringTicks*2),points=blastOutline(s.station,e.x,e.z,e.radius*(.4+.6*dust));poly(points,`rgba(173,150,97,${(1-dust)*.14})`);}
-      }else if(e.type==='kill')text(e.critical?'CRITICAL +'+e.points:'+'+e.points,p.x,p.y-25-t*30,`rgba(238,219,166,${1-t})`,e.critical?13:11,'center');
+      }else if(e.type==='rifle-trace'){const q=project(s.station,e.x,e.z,e.height);line([[576,640],[q.x,q.y]],`rgba(255,235,178,${(1-t)*.7})`,2);ellipse(q.x,q.y,4,4,'#ffeabf');}
+      else if(e.type==='kill'&&s.station!=='sniper')text(e.critical?'CRITICAL +'+e.points:'+'+e.points,p.x,p.y-25-t*30,`rgba(238,219,166,${1-t})`,e.critical?13:11,'center');
       else if(e.type==='tracer'&&(e.key==='m2'||e.key==='gatling'))line([e.key==='m2'?[576,503]:[-40,105],[p.x,p.y-(e.targetKind?p.scale*ENEMIES[e.targetKind].size*(e.head?16:10):0)]],`rgba(255,238,175,${(1-t)*.8})`,1.8);
     }
     for(const p of s.particles){
@@ -202,6 +221,7 @@ export function createRenderer(canvas){
   }
   function emplacement(s,time,reducedMotion=false){
     if(s.station==='gunship')return;
+    if(s.station==='sniper'){rifleEmplacement(s,reducedMotion);return;}
     const p=project(s.station,s.aim.x,s.aim.z),angle=clamp((p.x-576)/1000,-.35,.35);
     // Sandbags and foreground bring the gun down to eye level.
     for(let row=0;row<2;row++)for(let i=0;i<12;i++)cube(i*105+(row%2)*50,HEIGHT-row*24,98,28,10,'#4c503b','#62654a','#303c2d');
@@ -222,8 +242,47 @@ export function createRenderer(canvas){
     }
     ctx.restore();
   }
+  function rifleEmplacement(s,reducedMotion){
+    const w=s.weapons.rifle,stats=weaponStats(s),ads=s.sniper.ads;
+    ctx.save();ctx.globalAlpha=1-ads*.95;
+    const bolt=w.cooldown?Math.sin((1-w.cooldown/stats.interval)*Math.PI):0;
+    const reload=w.reload?Math.sin(w.reload/stats.reload*Math.PI):0;
+    ctx.translate(720,HEIGHT+reload*110+(reducedMotion?0:w.recoil*24));ctx.rotate(-.14);
+    // Fixed bipod, long barrel, muzzle brake, receiver and telescopic sight.
+    line([[-58,-22],[-140,0]],'#819071',10);line([[20,-22],[130,0]],'#819071',10);
+    poly([[-35,0],[-48,-85],[-18,-112],[30,-98],[70,0]],'#343e31');
+    cube(-8,-55,75,105,16,'#515b44','#879376','#28382d');
+    rect(-15,-320,18,165,'#3b483d');rect(-12,-320,4,165,'#9aa188');
+    cube(-6,-320,32,30,6,'#353f37','#9eab8d','#18271f');
+    for(let i=0;i<3;i++)rect(-20,-345+i*9,28,4,'#111b15');
+    cube(-7,-148,36,93,11,'#1c2a24','#6d7f66','#111c17');
+    ellipse(-2,-156,23,27,'#77866c');ellipse(-2,-157,17,21,'#172c2a');ellipse(0,-160,10,12,'#5f968444');
+    line([[30,-113],[69+bolt*30,-104+bolt*39],[78+bolt*30,-96+bolt*39]],'#a3ad89',6);
+    ellipse(79+bolt*30,-95+bolt*39,9,9,'#303d32');
+    if(flash&&!reducedMotion)poly([[-5,-350],[-25,-393],[0,-378],[4,-420],[18,-369],[39,-390],[15,-350]],'#ffe8ae');
+    ctx.restore();
+  }
+  function scopeReticle(s,p){
+    const ads=s.sniper.ads,w=s.weapons.rifle;
+    if(ads>0){
+      ctx.save();ctx.globalAlpha=ads;ctx.fillStyle='#050b09';ctx.beginPath();ctx.rect(0,0,WIDTH,HEIGHT);ctx.arc(p.x,p.y,277,0,Math.PI*2,true);ctx.fill('evenodd');
+      ctx.strokeStyle='#6b795c';ctx.lineWidth=12;ctx.beginPath();ctx.arc(p.x,p.y,280,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#121e17';ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,271,0,Math.PI*2);ctx.stroke();
+      line([[p.x-266,p.y],[p.x-10,p.y]],'#19261bcc',1.2);line([[p.x+10,p.y],[p.x+266,p.y]],'#19261bcc',1.2);
+      line([[p.x,p.y-266],[p.x,p.y-10]],'#19261bcc',1.2);line([[p.x,p.y+10],[p.x,p.y+266]],'#19261bcc',1.2);
+      for(let i=-4;i<=4;i++)if(i){line([[p.x+i*32,p.y-4],[p.x+i*32,p.y+4]],'#d1ddb2',1);line([[p.x-4,p.y+i*32],[p.x+4,p.y+i*32]],'#d1ddb2',1);}
+      text('LONG WATCH / 20 MM',p.x,p.y-225,'#c6d5ad',12,'center');text('3.2×  /  FIXED OVERWATCH',p.x,p.y+229,'#c6d5ad',11,'center');ctx.restore();
+    }
+    if(!ads){line([[p.x-12,p.y],[p.x-5,p.y]],'#d9e6b3',1);line([[p.x+5,p.y],[p.x+12,p.y]],'#d9e6b3',1);line([[p.x,p.y-12],[p.x,p.y-5]],'#d9e6b3',1);}
+    rect(p.x-1.5,p.y-1.5,3,3,'#ffd18b');
+    text(w.reload?'RELOADING':w.cooldown?'CYCLING BOLT':ads<1?'HOLD SCOPE / CLICK TO FIRE':'READY / ONE CLICK, ONE ROUND',p.x,p.y+55,'#d5dfbc',10,'center');
+    const c=s.rifleConfirm;
+    if(c&&s.tick-c.tick<85){const label=c.killed>=2?'COLLATERAL ×'+c.killed:c.heads?'HEADSHOT':c.hits?'HIT':'MISS';
+      text((c.quick?'QUICKSCOPE / ':'')+label,576,80,c.hits?'#ffce8f':'#abb696',18,'center');}
+  }
   function reticle(s,cursor){
     const ground=project(s.station,s.aim.x,s.aim.z),p=cursor||ground,w=s.weapons[s.weapon],stats=weaponStats(s),r=16;
+    if(s.station==='sniper'){scopeReticle(s,p);return;}
     if(stats.radius>5){ctx.setLineDash([6,7]);blastRing(s,s.aim.x,s.aim.z,stats.radius,'#e3f3b852');ctx.setLineDash([]);}
     const c=w.overheated?'#ee9165':w.reload?'#c5b67e':'#e3f3b8';
     ctx.strokeStyle=c;ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.stroke();
@@ -234,12 +293,17 @@ export function createRenderer(canvas){
   function draw(s,{time=s.tick/60,muted=false,reducedMotion=false,cursor=null}={}){
     const key=s.station+':'+sectorForRound(s.round).name;
     if(key!==sceneKey){const live=ctx;ctx=sceneContext;terrain(s);ctx=live;sceneKey=key;}
+    const sniper=s.station==='sniper',ads=sniper?s.sniper.ads:0,t=ads*ads*(3-2*ads),zoom=sniper?scopeZoom(s):1;
+    const anchor=cursor||{x:s.sniper.x,y:s.sniper.y},reticlePoint=sniper?{x:anchor.x+(576-anchor.x)*t,y:anchor.y+(360-anchor.y)*t}:cursor;
+    rect(0,0,WIDTH,HEIGHT,'#101c19');ctx.save();
+    if(sniper){ctx.translate(reticlePoint.x-anchor.x*zoom,reticlePoint.y-anchor.y*zoom);ctx.scale(zoom,zoom);}
     ctx.drawImage(scene,0,0);groundEffects(s);
     const actors=[...BUILDINGS.map(b=>({z:b.z+b.depth/2,draw:()=>building(s,b)})),...s.fuel.map(b=>({z:b.z,draw:()=>fuel(s,b)})),...s.enemies.map(e=>({z:e.z,draw:()=>enemy(s,e)}))];
     actors.sort((a,b)=>a.z-b.z).forEach(a=>a.draw());effects(s,reducedMotion);
+    ctx.restore();
     flash=reducedMotion?0:s.effects.some(e=>e.type==='tracer'&&e.key===s.weapon&&e.age<4)?1:0;
-    emplacement(s,time,reducedMotion);reticle(s,cursor);
-    if(s.hitConfirm&&s.tick-s.hitConfirm.tick<9){const p=cursor||project(s.station,s.aim.x,s.aim.z),c=s.hitConfirm.critical?'#ffbe7e':'#eff6cd';
+    emplacement(s,time,reducedMotion);reticle(s,reticlePoint);
+    if(s.hitConfirm&&s.tick-s.hitConfirm.tick<9){const p=reticlePoint||project(s.station,s.aim.x,s.aim.z),c=s.hitConfirm.critical?'#ffbe7e':'#eff6cd';
       for(const [x,y] of [[-1,-1],[1,-1],[-1,1],[1,1]])line([[p.x+x*5,p.y+y*5],[p.x+x*11,p.y+y*11]],c,2);}
     const vignette=ctx.createRadialGradient(576,330,200,576,350,700);vignette.addColorStop(0,'#0000');vignette.addColorStop(1,'#0008');ctx.fillStyle=vignette;ctx.fillRect(0,0,WIDTH,HEIGHT);
     for(let y=0;y<HEIGHT;y+=4)rect(0,y,WIDTH,1,'#0000000b');

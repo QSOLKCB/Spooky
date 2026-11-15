@@ -127,7 +127,7 @@ try{
     try{
       await vc.addInitScript(installAnimationClock);const p=await vc.newPage();p.on('pageerror',e=>receipt.errors.push(e.message));
       await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
-      for(const [round,station,weapon] of [[1,'gunship','howitzer'],[2,'artillery','battery'],[3,'infantry','m2']]){
+      for(const [round,station,weapon] of [[1,'gunship','howitzer'],[2,'artillery','battery'],[3,'infantry','m2'],[4,'sniper','rifle']]){
         const capture=await p.evaluate(async({round,station,weapon})=>{
           const {create,step}=await import('./js/sim.js'),{createRenderer,project}=await import('./js/render.js');
           const s=create();s.round=round;s.station=station;s.weapon=weapon;s.nextSpawn=100000;
@@ -177,6 +177,25 @@ try{
       for(let i=0;i<2;i++)fs.writeFileSync(path.join(out,`blast-${i===0?'40mm':'105mm'}.jpg`),Buffer.from(result.pictures[i].split(',')[1],'base64'));
     }finally{await vc.close();}
   });
+  await check('sniper scope magnifies actual voxel hitboxes and renders deterministic headshot/collateral feedback',async()=>{
+    const vc=await browser.newContext({viewport:{width:1440,height:1000}});
+    try{
+      const p=await vc.newPage();await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
+      const shots=await p.evaluate(async()=>{
+        const sim=await import('./js/sim.js'),view=await import('./js/render.js'),rifle=await import('./js/sniper.js');
+        const s=sim.create();Object.assign(s,{station:'sniper',weapon:'rifle',round:4,roundTick:200,nextSpawn:100000,fuel:[]});
+        s.enemies=[48,45,42].map((z,i)=>({id:i+1,x:0,z,kind:'walker',hp:100,maxHp:100,speed:0,stride:0,variant:i}));
+        s.enemies.push({id:4,x:7,z:40,kind:'brute',hp:400,maxHp:400,speed:0,stride:0});
+        const b=rifle.hitboxes(s.enemies[1])[0],point=view.project('sniper',0,45,(b.min[1]+b.max[1])/2),input={...view.aimFromScreen(s,point.x,point.y),scope:true};
+        const canvas=document.createElement('canvas'),renderer=view.createRenderer(canvas),pictures=[];
+        for(let i=0;i<9;i++)sim.step(s,input);const before=JSON.stringify(s);renderer.draw(s,{cursor:point});pictures.push(canvas.toDataURL('image/jpeg',.9));
+        renderer.draw(s,{cursor:point});if(canvas.toDataURL('image/jpeg',.9)!==pictures[0]||JSON.stringify(s)!==before)throw new Error('scope render changed state/pixels');
+        sim.step(s,{...input,fire:true});if(s.collaterals!==1||s.heads!==3)throw new Error('scope fixture did not hit aligned heads');
+        renderer.draw(s,{cursor:point});pictures.push(canvas.toDataURL('image/jpeg',.9));renderer.draw(s,{cursor:point,reducedMotion:true});return pictures;
+      });
+      for(let i=0;i<shots.length;i++)fs.writeFileSync(path.join(out,i?'sniper-collateral.jpg':'sniper-scope.jpg'),Buffer.from(shots[i].split(',')[1],'base64'));
+    }finally{await vc.close();}
+  });
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
   page.on('pageerror',e=>receipt.errors.push(e.message));
   await context.addInitScript(installAnimationClock);
@@ -191,7 +210,7 @@ try{
   await check('field manual exports the selected complete station soundtrack',async()=>{
     const {makeScore}=await import('../js/audio.js');
     await key(page,'KeyP');await click(page,'#quit');await click(page,'#manual-open');
-    for(const station of ['gunship','artillery','infantry']){
+    for(const station of ['gunship','artillery','infantry','sniper']){
       await page.locator('#soundtrack').selectOption(station);const pending=page.waitForEvent('download');await page.locator('#download-music').click();
       const download=await pending;assert.equal(download.suggestedFilename(),`spooky-${station}-last-light.wav`);
       assert.deepEqual(fs.readFileSync(await download.path()),Buffer.from(makeScore(station).wav()));
@@ -214,24 +233,76 @@ try{
     await click(page,'#quit');await click(page,'#deploy');
   });
   await page.evaluate(async()=>{
-    const sim=await import('./js/sim.js'),view=await import('./js/render.js');window.__mirror=sim.create();
+    const sim=await import('./js/sim.js'),view=await import('./js/render.js'),rifle=await import('./js/sniper.js');window.__mirror=sim.create();
     window.__playRound=()=>{
       const s=window.__mirror,canvas=document.querySelector('#field'),rect=canvas.getBoundingClientRect();
       const scale=Math.min(rect.width/view.WIDTH,rect.height/view.HEIGHT),ox=rect.left+(rect.width-view.WIDTH*scale)/2,oy=rect.top+(rect.height-view.HEIGHT*scale)/2;
       const dispatchKey=(code,down)=>window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{code,bubbles:true,cancelable:true}));
       if(s.station==='gunship'){sim.selectWeapon(s,2);dispatchKey('Digit3',true);dispatchKey('Digit3',false);}
-      let count=0;
+      let count=0,mouse={x:576,y:360};
       while(s.status==='playing'&&count++<10000){
         const target=s.enemies.reduce((a,b)=>!a||b.z>a.z?b:a,null),stats=sim.weaponStats(s);
-        const point=target?view.project(s.station,target.x,target.z+target.speed*stats.flight):view.project(s.station,0,45);
-        canvas.dispatchEvent(new PointerEvent('pointermove',{pointerType:'mouse',clientX:ox+point.x*scale,clientY:oy+point.y*scale,bubbles:true}));
-        dispatchKey('Space',!!target);const aim=view.aimFromScreen(s,point.x,point.y);
-        sim.step(s,{...aim,fire:!!target});window.__frames(1);
+        const box=target&&s.station==='sniper'?rifle.hitboxes(target)[0]:null;
+        const point=target?view.project(s.station,target.x,target.z+target.speed*stats.flight,box?(box.min[1]+box.max[1])/2:0):view.project(s.station,0,45);
+        const zoom=s.station==='sniper'?rifle.scopeZoom(s):1;
+        mouse=s.station==='sniper'&&count>1?{x:mouse.x+(point.x-s.sniper.x)*zoom,y:mouse.y+(point.y-s.sniper.y)*zoom}:point;
+        canvas.dispatchEvent(new PointerEvent('pointermove',{pointerType:'mouse',clientX:ox+mouse.x*scale,clientY:oy+mouse.y*scale,bubbles:true}));
+        const fire=!!target&&(s.station!=='sniper'||!s.sniper.trigger&&s.weapons.rifle.cooldown<=1);
+        dispatchKey('ShiftLeft',s.station==='sniper');dispatchKey('Space',fire);const aim=view.aimFromScreen(s,point.x,point.y);
+        sim.step(s,{...aim,fire,scope:s.station==='sniper'});window.__frames(1);
       }
-      dispatchKey('Space',false);window.__frames(8);return {status:s.status,round:s.round,kills:s.kills,score:s.score,offers:s.offers,frames:count};
+      dispatchKey('Space',false);dispatchKey('ShiftLeft',false);window.__frames(8);return {status:s.status,round:s.round,kills:s.kills,score:s.score,offers:s.offers,frames:count};
     };
   });
-  for(const [round,name] of [[1,'gunship'],[2,'artillery'],[3,'infantry']]){
+  for(const [round,name] of [[1,'gunship'],[2,'artillery'],[3,'infantry'],[4,'sniper']]){
+    if(round===4)await check('rifle scope, mouse chords, one-shot trigger, touch, gamepad and cancellation work in the live fourth station',async()=>{
+      const point={x:80,y:600};
+      const sync=async(n,scope=false,fire=false,reload=false)=>page.evaluate(async({n,scope,fire,reload,point})=>{
+        const sim=await import('./js/sim.js'),view=await import('./js/render.js');
+        for(let i=0;i<n;i++){sim.step(window.__mirror,{...view.aimFromScreen(window.__mirror,point.x,point.y),scope,fire,reload:reload&&i===0});window.__frames(1);}
+      },{n,scope,fire,reload,point});
+      const cancel=()=>page.evaluate(async()=>{(await import('./js/sim.js')).cancelInput(window.__mirror);});
+      const ammo=()=>page.locator('#ammo').textContent().then(Number);
+      let field=await page.locator('#field').boundingBox(),scale=Math.min(field.width/1152,field.height/720);
+      await page.mouse.move(field.x+(field.width-1152*scale)/2+point.x*scale,field.y+(field.height-720*scale)/2+point.y*scale);
+      await page.mouse.down({button:'right'});await sync(15,true);assert.match(await page.locator('#heat').textContent(),/SETTLED/);
+      const initial=await ammo();await page.mouse.down({button:'left'});await sync(8,true,true);assert.equal(await ammo(),initial-1);
+      await sync(65,true,true);assert.equal(await ammo(),initial-1,'held trigger cannot auto-fire after cycling');
+      await page.mouse.up({button:'right'});await sync(8,false,true);assert.equal(await page.locator('#scope').getAttribute('aria-pressed'),'false','RMB release works while LMB stays held');
+      await page.mouse.up({button:'left'});await sync(1);await key(page,'ShiftLeft');await sync(15,true);assert.match(await page.locator('#heat').textContent(),/SETTLED/);
+      await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await cancel();assert.ok(await page.locator('#pause-panel').isVisible());await frames(page,30);assert.equal(await ammo(),initial-1);
+      await click(page,'#resume');await sync(10);assert.equal(await page.locator('#scope').getAttribute('aria-pressed'),'false');
+      // Short screen and landscape tablet both expose SCOPE, RELOAD and FIRE.
+      for(const [width,height] of [[320,568],[1024,768]]){
+        await page.setViewportSize({width,height});
+        for(const selector of ['#scope','#touch-reload','#touch-fire']){const b=await page.locator(selector).boundingBox();assert.ok(b&&b.x>=0&&b.y>=0&&b.x+b.width<=width+1&&b.y+b.height<=height+1,selector+' fits '+width);assert.ok(b.height>=44);}
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      }
+      await click(page,'#scope');await sync(15,true);const session=await context.newCDPSession(page);
+      await session.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+      field=await page.locator('#field').boundingBox();const fire=await page.locator('#touch-fire').boundingBox();
+      const aiming={x:field.x+field.width*.5,y:field.y+field.height*.5,id:1},trigger={x:fire.x+fire.width*.5,y:fire.y+fire.height*.5,id:2};
+      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aiming]});await sync(1,true);
+      const beforeTouch=await ammo();await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aiming,trigger]});await sync(8,true,true);assert.equal(await ammo(),beforeTouch-1);
+      await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[aiming]});await sync(60,true,true);assert.equal(await ammo(),beforeTouch-1,'aim finger release does not fire a second rifle shot');
+      await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await sync(1,true);await session.send('Emulation.setTouchEmulationEnabled',{enabled:false});await session.detach();
+      await page.screenshot({path:path.join(out,'sniper-tablet.png')});await click(page,'#scope');await sync(10);
+      // A cancelled tap during ADS must not leave a delayed rifle shot behind.
+      await click(page,'#scope');await key(page,'Space');
+      const beforeCancel=await ammo();await sync(1,true,true);await key(page,'Space',false);
+      await page.evaluate(async()=>{window.dispatchEvent(new PointerEvent('pointercancel',{pointerId:88,pointerType:'touch',bubbles:true}));(await import('./js/sim.js')).cancelShot(window.__mirror);});
+      await sync(15,true);assert.equal(await ammo(),beforeCancel,'pointer cancellation drops the queued ADS shot');await click(page,'#scope');await sync(10);
+      await key(page,'KeyR');await key(page,'KeyR',false);await sync(140,false,false,true);assert.equal(await ammo(),5);
+      await page.evaluate(()=>{window.__pad={connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false}))};Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>window.__pad?[window.__pad]:[]});});
+      await sync(1);await page.evaluate(()=>window.__pad.buttons[6].pressed=true);await sync(15,true);assert.match(await page.locator('#heat').textContent(),/SETTLED/);
+      await page.evaluate(()=>window.__pad.buttons[7].pressed=true);await sync(8,true,true);assert.equal(await ammo(),4);
+      await sync(55,true,true);assert.equal(await ammo(),4);
+      await page.evaluate(()=>window.__pad=null);await cancel();await frames(page,1);assert.ok(await page.locator('#pause-panel').isVisible(),'gamepad disconnect pauses and clears scope');
+      await click(page,'#resume');await sync(10);assert.equal(await ammo(),4);
+      await page.setViewportSize({width:1440,height:1000});
+      // Exit input exercise unscoped; full-wave driver supplies the next absolute aim.
+      await page.evaluate(()=>delete navigator.getGamepads);
+    });
     await check(`${name}: complete a wave through actual input handlers and choose an upgrade`,async()=>{
       const result=await page.evaluate(()=>window.__playRound());assert.equal(result.status,'upgrade');assert.equal(result.round,round);
       assert.ok(await page.locator('#upgrade-panel').isVisible());assert.equal(await page.locator('.upgrade-card').count(),3);

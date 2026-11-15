@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "started": "2026-11-15T15:49:44.643Z",
+  "checks": [
+    "landscape tablets show touch controls and preserve independent aim/fire/reload input",
+    "Fit window keeps the complete battlefield, HUD and controls visible on short screens",
+    "native fullscreen enters and exits through one controller, pauses combat and clears held fire",
+    "fullscreen denial falls back to Fit window; window preference persists and short menus scroll",
+    "all station scenes render gravity debris, fuel chains and distinct enemy silhouettes without mutating combat",
+    "105 mm has a much larger visible blast and finite effects at full upgrades",
+    "sniper scope magnifies actual voxel hitboxes and renders deterministic headshot/collateral feedback",
+    "desktop briefing and manual are usable",
+    "field manual exports the selected complete station soundtrack",
+    "Space still fires after toolbar clicks; weapon and reload controls work",
+    "pause and lost focus freeze combat and cancel held fire",
+    "gunship: complete a wave through actual input handlers and choose an upgrade",
+    "artillery: complete a wave through actual input handlers and choose an upgrade",
+    "infantry: complete a wave through actual input handlers and choose an upgrade",
+    "rifle scope, mouse chords, one-shot trigger, touch, gamepad and cancellation work in the live fourth station",
+    "sniper: complete a wave through actual input handlers and choose an upgrade",
+    "loss, personal best, retry and restart work without a refresh",
+    "offline cache serves a complete deployment under a repository subpath",
+    "320 px and 390 px layouts fit and touch firing survives aim-pointer release",
+    "unavailable audio leaves gameplay and saved preferences intact"
+  ],
+  "errors": [],
+  "browser": "141.0.7390.37",
+  "finished": "2026-11-15T15:50:12.825Z"
+}

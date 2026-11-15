@@ -26,7 +26,7 @@ These files are vendored unmodified with the upstream LICENSE and NOTICE. `vendo
 
 ## Battlefield and presentation
 
-`js/world.js` owns building footprints, fuel-drum positions and three lighting palettes. `js/physics.js` applies VANILLAJS gravity to shells and debris, broad-phase collision filtering before swept AABB motion, spatial-bin crowd separation and deterministic blast impulses. Buildings block horde movement; they are not destructible projectile shields. Shell velocities are chosen to reach the selected ground point on the existing weapon flight tick. These are arcade game units.
+`js/world.js` owns building footprints, fuel-drum positions and three lighting palettes. `js/physics.js` applies VANILLAJS gravity to shells and debris, broad-phase collision filtering before swept AABB motion, spatial-bin crowd separation and deterministic blast impulses. Buildings block horde movement and rifle rays; explosive shells retain their existing ground-impact rules. Buildings are not destructible. Shell velocities are chosen to reach the selected ground point on the existing weapon flight tick. These are arcade game units.
 
 Fuel drums are marked destroyed before their blast enters the chain queue. Each can detonate once per round; it awards 25 points but never counts as a creature kill or a fired shot. Direct-fire head picking sends a target ID and world aim to the simulation. A 1.65× critical applies only to that target, only with the 25 mm/M2, and only if the actual impact is in range. Bulwark mass reduces knockback.
 
@@ -35,6 +35,16 @@ The renderer caches terrain by station and lighting palette, then draws depth-so
 Last Light March uses an original 16-bar D-minor theme at 120 BPM. Each station has an eight-phrase, 32-second integer PCM arrangement. Four non-overlapping lanes carry marching bass drums/bass responses, seeded field snares and rolls, a saw/square brass lead and triangle horn harmony. Every phrase ends on the 60 Hz tick grid; both full-loop exports and arbitrary cross-phrase chunks are verified. Weapon sounds layer a crack, falling low-frequency body, debris and reflected report, with four deterministic variants. Web Audio adds stereo pan, distance gain and output compression. Music and effects remain independently switchable; station changes stop the old score. Explicit lifecycle stop releases both music and FX voices. Export selects any station's complete WAV in the field manual.
 
 The 40 mm and 105 mm have separate damage/radius budgets and the 105 mm has a dedicated explosion profile. Shared profile values drive lifetime, flame/smoke timing, debris throw, survivor impulse and the audio recipe. Landing guides and shockwaves project a sampled circle in world coordinates, clipped to the field before perspective projection, instead of using character sprite scale. A fixed small crosshair preserves precise aiming even at the maximum radius upgrade. See [the balance record](GUNSHIP_BALANCE.md).
+
+## QUICKSCOPER adaptation
+
+`js/sniper.js` adapts `src/math.js` ray slabs and `src/game.js` ordered collateral tracing from QUICKSCOPER at `8da5569b1ee7565d9ae5fb0588847d262c896648`. The exact source blob identities, modified destinations and retained licence are in `vendor/QUICKSCOPER.json`. These are explicitly adapted files, unlike the byte-identical VANILLAJS and Outruin code.
+
+The fixed camera has origin `[0, 15000/720, 127]`. The pure sight ray inverts the existing infantry perspective. Animated head, torso, arm and leg boxes are shared by renderer and tracer. One closest region per living enemy is collected before the nearest building, then sorted by distance and ID. Damage attenuates per penetration and the cap comes from station upgrades. Sniper buildings use flat roofs matching their solid bounds; the thin relay antenna, trees and ground decoration remain cosmetic. Fuel drums are blast-reactive scenery, not rifle targets. Tracers terminate at cover or the penetration cap; they never create a splash explosion.
+
+Scope settle/quickscope windows and a short one-edge fire buffer are adapted from QUICKSCOPER to integer 60 Hz ticks. Early bolt clicks are ignored; late clicks can wait up to 11 ticks. Scope release, reload and lifecycle cancellation clear buffered scoped shots. Holding the trigger cannot fire another round. The same smooth ADS factor determines both magnification and pointer delta scaling. Input positions include the canvas contain scale and letterbox offset.
+
+The fourth station adds a quieter high-register triangle lead to the deterministic march, plus a rifle crack and a timed mechanical bolt event. Its WAV export uses the same verified VANILLAJS score path.
 
 ## Display modes
 
@@ -59,6 +69,6 @@ Fit window and native fullscreen reserve room for the header, telemetry, weapon/
 
 ## Verification and limits
 
-Pure tests exercise seeded repetition, nine-round progression, the actual weapon lifecycle, splash/flight, rank limits, invalid input, terminal state, body picking, frame schedules, seed sweeps and PCM generation. Browser tests drive the real app handlers with an owned animation clock, compare full-wave score/kills to the pure model, and verify three station transitions, keyboard/touch input, pause, retry, audio failure and offline reload. They create a receipt before launching and preserve failures and screenshots.
+Pure tests exercise seeded repetition, twelve-round Cadet progression, the actual weapon lifecycle, splash/flight, rank limits, invalid input, terminal state, body picking, frame schedules, seed sweeps and PCM generation. Browser tests drive the real app handlers with an owned animation clock, compare full-wave score/kills to the pure model, and verify four station transitions, keyboard/touch input, pause, retry, audio failure and offline reload. They create a receipt before launching and preserve failures and screenshots.
 
 The browser suite uses Chromium. Firefox, Safari, physical controllers, audible mix balance and physical touch-device performance are not certified by these checks. Automated aim is an execution test, not evidence that every difficulty is balanced for every player.

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {create,step,chooseUpgrade,selectWeapon,reload,weaponStats,waveSize} from '../js/sim.js';
 import {stationForRound,ENEMIES,UPGRADES} from '../js/content.js';
 import {project,unproject,enemyBounds,aimFromScreen} from '../js/render.js';
+import {hitboxes} from '../js/sniper.js';
 import {FixedClock} from '../vendor/vanillajs/modules/time/index.js';
 const advance=(s,n,input={})=>{for(let i=0;i<n;i++)step(s,typeof input==='function'?input(s,i):input);};
 function enemy(s,{x=0,z=45,kind='walker',hp=ENEMIES[kind].hp,speed=0}={}){const e={id:s.nextId++,kind,x,z,hp,maxHp:hp,speed,phase:0,flash:0};s.enemies.push(e);return e;}
@@ -13,6 +14,7 @@ function pilot(s){
   // Cycle ready gunship weapons; obstacle steering disperses targets between salvos.
   const weapon=s.station==='gunship'?([2,1,0].find(i=>{const gun=s.weapons[stationForRound(s.round).weapons[i]];return !gun.cooldown&&!gun.reload&&!gun.overheated;})??0):0,key=stationForRound(s.round).weapons[weapon];
   const e=s.enemies.reduce((a,b)=>!a||b.z>a.z?b:a,null),w=weaponStats(s,key);
+  if(s.station==='sniper'&&e){const b=hitboxes(e)[0],p=project('sniper',e.x,e.z,(b.min[1]+b.max[1])/2);return {...aimFromScreen(s,p.x,p.y),scope:true,fire:!s.sniper.trigger&&s.weapons.rifle.cooldown<=1};}
   return {x:e?.x??0,z:e?e.z+e.speed*w.flight:45,fire:!!e,weapon};
 }
 test('seed and difficulty validation rejects malformed public construction',()=>{
@@ -29,9 +31,9 @@ test('seeded input streams reproduce full state including choices',()=>{
     }assert.deepEqual(a,b);
   }
 });
-test('a real nine-round run rotates stations, escalates hordes and retains upgrades',()=>{
-  const s=create(),history=[],ranks={};
-  for(let ticks=0;ticks<40000&&s.round<=9&&s.status!=='lost';ticks++){
+test('a real twelve-round Cadet run rotates stations, escalates hordes and retains upgrades',()=>{
+  const s=create({difficulty:'cadet'}),history=[],ranks={};
+  for(let ticks=0;ticks<60000&&s.round<=12&&s.status!=='lost';ticks++){
     step(s,pilot(s));
     if(s.status==='upgrade'){
       history.push({round:s.round,station:s.station,total:s.total,kills:s.roundKills});
@@ -42,8 +44,8 @@ test('a real nine-round run rotates stations, escalates hordes and retains upgra
       for(const [key,value] of Object.entries(ranks))assert.deepEqual(s.upgrades[key],value);
     }
   }
-  assert.equal(s.round,10);assert.equal(history.length,9);assert.equal(s.status,'playing');
-  assert.deepEqual(history.map(x=>x.station),Array(3).fill(['gunship','artillery','infantry']).flat());
+  assert.equal(s.round,13);assert.equal(history.length,12);assert.equal(s.status,'playing');
+  assert.deepEqual(history.map(x=>x.station),Array(3).fill(['gunship','artillery','infantry','sniper']).flat());
   for(let i=1;i<history.length;i++)assert.ok(history[i].total>history[i-1].total);
 });
 test('every weapon hits real targets and heavy blasts damage groups once',()=>{

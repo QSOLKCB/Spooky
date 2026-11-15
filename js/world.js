@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import {STATIONS} from './content.js';
 // Shared authored scenery and collision footprints in fictional game units.
 export const BUILDINGS = Object.freeze([
   {id:'west-depot',x:-26,z:28,width:9,depth:8,height:6,roof:'flat'},
@@ -17,4 +18,4 @@ export const SECTORS=[
   {name:'ECHO / ASH VALLEY',sky:'#211a29',horizon:'#554850',ground:'#454138',road:'#65584a',accent:'#f3ad79'},
   {name:'ECHO / BLUE HOUR',sky:'#142132',horizon:'#3f5961',ground:'#364641',road:'#52635b',accent:'#a4d7ce'}
 ];
-export const sectorForRound=round=>SECTORS[Math.floor((round-1)/3)%SECTORS.length];
+export const sectorForRound=round=>SECTORS[Math.floor((round-1)/STATIONS.length)%SECTORS.length];

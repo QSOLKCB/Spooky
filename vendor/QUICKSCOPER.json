@@ -1,0 +1,44 @@
+{
+  "repository": "QSOLKCB/QUICKSCOPER",
+  "commit": "8da5569b1ee7565d9ae5fb0588847d262c896648",
+  "license": "Apache-2.0",
+  "modified": true,
+  "files": [
+    {
+      "path": "vendor/quickscoper/LICENSE",
+      "source": "LICENSE",
+      "gitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    }
+  ],
+  "adaptations": [
+    {
+      "paths": [
+        "js/sniper.js",
+        "js/sim.js"
+      ],
+      "sources": [
+        {
+          "path": "src/math.js",
+          "gitBlob": "218c57e698fb4ae31c92159fb3ef5a4da872bb90"
+        },
+        {
+          "path": "src/game.js",
+          "gitBlob": "b816c27892ed59becf566c015a7a8ebdf3a10818"
+        }
+      ],
+      "changes": "Slab ray/box intersection, closest region per body, stable front-to-back wall-blocked collaterals, nine-tick ADS and bounded one-edge fire buffer adapted to Spooky camera, animated voxel hitboxes, horde HP, penetration attenuation and station upgrades. No donor gameplay module or graphics engine is imported at runtime."
+    },
+    {
+      "paths": [
+        "js/render.js"
+      ],
+      "sources": [
+        {
+          "path": "src/renderer.js",
+          "gitBlob": "6f43fd25cc307a51113736b19393f420f0e78374"
+        }
+      ],
+      "changes": "Smooth ADS magnification and recoil/bolt presentation adapted to original Canvas 2D scope, bipod and rifle artwork. Donor WebGL code and skins are not copied."
+    }
+  ]
+}

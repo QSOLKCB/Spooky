@@ -10,14 +10,18 @@ export const STATIONS = [
     tip:'Lead moving groups. Heavy blasts stagger and push back survivors; bulwarks resist the impulse.', weapons:['battery']},
   {id:'infantry', short:'M2 .50 CAL', name:'Last line', role:'GROUND DEFENCE', tag:'03',
     description:'Take the gun at the wire. Hold the line, change belts and keep the barrel cool.',
-    tip:'Aim for heads with the M2. Fire in bursts, and use fuel drums when the horde clusters.', weapons:['m2']}
+    tip:'Aim for heads with the M2. Fire in bursts, and use fuel drums when the horde clusters.', weapons:['m2']},
+  {id:'sniper', short:'20 MM RIFLE', name:'Long watch', role:'PRECISION OVERWATCH', tag:'04',
+    description:'Man a fixed 20 mm bolt-action rifle. Scope in, pick a head and line up the horde.',
+    tip:'Hold right mouse / Shift or toggle SCOPE. Click once per shot. Heads hit harder; aligned targets take collaterals. Buildings stop rounds.', weapons:['rifle']}
 ];
 export const WEAPONS = {
   gatling: {name:'25 mm Gatling', label:'25 MM', damage:30, radius:2.6, interval:7, flight:7, magazine:90, reload:95, heat:1.5},
   bofors: {name:'40 mm cannon', label:'40 MM', damage:135, radius:11, interval:26, flight:22, magazine:16, reload:125, heat:0},
   howitzer: {name:'105 mm howitzer', label:'105 MM', damage:400, radius:26, interval:100, flight:40, magazine:5, reload:155, heat:0},
   battery: {name:'155 mm field gun', label:'155 MM HE', damage:170, radius:12, interval:66, flight:55, magazine:5, reload:130, heat:0},
-  m2: {name:'M2 Browning', label:'.50 BMG', damage:38, radius:3.1, interval:6, flight:0, magazine:80, reload:150, heat:3.9}
+  m2: {name:'M2 Browning', label:'.50 BMG', damage:38, radius:3.1, interval:6, flight:0, magazine:80, reload:150, heat:3.9},
+  rifle: {name:'20 mm anti-materiel rifle', label:'20 MM BOLT', damage:200, radius:0, interval:54, flight:0, magazine:5, reload:132, heat:0}
 };
 // Arcade effect profiles: the slow 105 mm gets a distinct impact, not just a longer cooldown.
 const EXPLOSIONS = {
@@ -44,4 +48,17 @@ export const UPGRADES = [
   {id:'cooling', icon:'❄', name:'Cold iron', description:'Slower heat buildup; shells fly 12% faster per rank.', max:5, kind:'SUSTAIN'},
   {id:'repair', icon:'+', name:'Hold the line', description:'Repair 25 outpost integrity now. Available every round.', max:Infinity, kind:'OUTPOST'}
 ];
-export const stationForRound = round => STATIONS[(round-1)%3];
+export const stationForRound = round => STATIONS[(round-1)%STATIONS.length];
+
+// Every sniper card has a mechanical benefit; blast/heat cards become penetration cards.
+export function upgradeForStation(id,station){
+  const base=UPGRADES.find(u=>u.id===id);
+  if(station!=='sniper')return base;
+  const changes={
+    damage:{name:'Heavy punch',description:'+25% rifle damage per rank. Head hits deal 2.5× damage.'},
+    radius:{name:'Through and through',description:'+1 target penetrated per shot, from 3 up to 9. Buildings always stop rounds.'},
+    rate:{name:'Slick bolt',description:'+14% bolt cycling and reload speed per rank.'},
+    cooling:{name:'Follow-through',description:'+5 percentage points of damage retained per penetration, from 70% up to 95%.'}
+  };
+  return {...base,...changes[id]};
+}

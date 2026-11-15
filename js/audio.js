@@ -3,7 +3,7 @@ import {explosionProfile} from './content.js';
 import {createSound2D} from '../vendor/vanillajs/modules/audio2d/index.js';
 import {createSoundtrack} from '../vendor/vanillajs/modules/soundtrack/index.js';
 import {createSoundtrackPlayer} from '../vendor/vanillajs/api/audio/index.js';
-const STATIONS=['gunship','artillery','infantry'];
+const STATIONS=['gunship','artillery','infantry','sniper'];
 // Last Light March: original 16-bar D-minor theme, 120 BPM, four integer PCM lanes.
 // Tuples are [eighth-note onset, eighth-note length, frequency in integer Hz].
 const MARCH_THEME = [
@@ -40,8 +40,8 @@ export function makeScore(station='gunship'){
     for(const [onset,length,pitch] of melody){
       const sample=onset*eighth,duration=length*eighth-1400;
       // Saw/square fundamentals plus a quieter horn harmony make a brass-like call.
-      const lead=station==='gunship'?Math.round(pitch/2):pitch;
-      note(2,sample,duration,lead,station==='infantry'?1500:1250,station==='artillery'?'saw':'square');
+      const lead=station==='gunship'?Math.round(pitch/2):station==='sniper'?pitch*2:pitch;
+      note(2,sample,duration,lead,station==='sniper'?950:station==='infantry'?1500:1250,station==='sniper'?'triangle':station==='artillery'?'saw':'square');
       const harmony=phrase===7&&onset===12?147:(onset<8?roots[phrase]:fifths[phrase]);
       note(3,sample+400,Math.max(1,duration-800),station==='infantry'?harmony*2:harmony,650,'triangle');
     }
@@ -50,7 +50,7 @@ export function makeScore(station='gunship'){
 }
 function phaseSeed(phrase,stroke,arrangement){return (47047+phrase*65537+stroke*977+arrangement*1597)>>>0;}
 export function makeEffect(type,variant=0){
-  const specs={gatling:[.18,82,6800],m2:[.23,70,7600],bofors:[.46,49,9000],howitzer:[1.35,32,10500],battery:[.95,32,10500],
+  const specs={gatling:[.18,82,6800],m2:[.23,70,7600],rifle:[.7,58,9800],bolt:[.3,800,2400],bofors:[.46,49,9000],howitzer:[1.35,32,10500],battery:[.95,32,10500],
     impact:[.85,43,7700],impact105:[1.8,30,10000],breach:[.3,95,4500],clear:[.65,523,4000],reload:[.26,950,2300],hot:[.25,330,2400],lost:[.9,65,4000]};
   const [duration,freq,gain]=specs[type]||specs.impact,frames=Math.round(duration*48000),tone=['clear','hot','lost'].includes(type),v=(variant>>>0)%4;
   const events=[];let id=1;
@@ -63,7 +63,7 @@ export function makeEffect(type,variant=0){
     add(1,Math.floor(frames*.17),Math.floor(frames*.65),low,gain*.45,'triangle');
     add(2,Math.floor(frames*.16),Math.floor(frames*.8),1800+v*130,gain*.2,'noise');
     add(3,Math.floor(frames*.37),Math.floor(frames*.42),low,gain*.16,'noise');
-    if(type==='reload'){events.length=0;add(0,0,2800,1600+v*80,2500,'noise');add(0,6000,4000,850,3500,'noise');add(1,6100,1900,410,1100,'square');}
+    if(type==='reload'||type==='bolt'){events.length=0;add(0,0,2800,1600+v*80,2500,'noise');add(0,6000,4000,850,3500,'noise');add(1,6100,1900,410,1100,'square');}
   }
   return createSound2D({frames,events});
 }

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import {FixedClock} from '../vendor/vanillajs/modules/time/index.js';
-import {create,step,chooseUpgrade,selectWeapon,weaponStats} from './sim.js';
-import {STATIONS,UPGRADES,stationForRound,DIFFICULTIES} from './content.js';
+import {create,step,chooseUpgrade,selectWeapon,weaponStats,cancelInput,cancelShot} from './sim.js';
+import {STATIONS,UPGRADES,stationForRound,DIFFICULTIES,upgradeForStation} from './content.js';
 import {createRenderer,project,aimFromScreen,WIDTH,HEIGHT} from './render.js';
+import {scopeZoom} from './sniper.js';
 import {createAudio} from './audio.js';
 import {Display} from './display.js';
 const $=id=>document.getElementById(id),canvas=$('field'),renderer=createRenderer(canvas);
@@ -12,7 +13,7 @@ let cursor=project(state.station,aim.x,aim.z);
 let demo=create(),last=performance.now(),uiStation='',uiWeapon='',best={},prefs={fx:true,music:true};
 try{const data=JSON.parse(localStorage.getItem('spooky.preferences')||'null');if(data&&typeof data.fx==='boolean'&&typeof data.music==='boolean')prefs={fx:data.fx,music:data.music};}catch{}
 try{const data=JSON.parse(localStorage.getItem('spooky.best')||'{}');for(const key of Object.keys(DIFFICULTIES))if(Number.isSafeInteger(data[key])&&data[key]>=0)best[key]=data[key];}catch{}
-const keys=new Set(),firePointers=new Set();let aimPointer=null,padPrevious=[],padBlocked=true;
+const keys=new Set(),firePointers=new Set();let aimPointer=null,padPrevious=[],padBlocked=true,scopeHeld=false,scopeToggle=false,padScope=false,lastPointer=null;
 const audio=createAudio(()=>notice('Audio unavailable this session. Combat stays active.'));
 let windowMode='fit';try{windowMode=localStorage.getItem('spooky.display')||'fit';}catch{}
 const display=new Display({select:$('display-mode'),button:$('fullscreen'),feedback:$('display-feedback'),initial:windowMode,
@@ -27,7 +28,8 @@ function preferences(){
 }
 function savePreferences(){try{localStorage.setItem('spooky.preferences',JSON.stringify(prefs));}catch{}}
 function clearInput(){
-  keys.clear();firePointers.clear();pendingReload=false;padBlocked=true;
+  keys.clear();firePointers.clear();pendingReload=false;padBlocked=true;scopeHeld=false;scopeToggle=false;padScope=false;lastPointer=null;cancelInput(state);
+  $('scope').setAttribute('aria-pressed','false');
   if(aimPointer!==null){try{canvas.releasePointerCapture(aimPointer);}catch{}aimPointer=null;}
 }
 function show(panel){
@@ -57,15 +59,20 @@ function hud(s){
   $('health-progress').style.width=s.hp+'%';$('health-progress').style.background=s.hp<30?'#e59c70':'var(--acid)';
   $('wave-progress').style.width=(100*(s.total-s.resolved)/s.total)+'%';
   $('weapon-name').textContent=stats.name;$('ammo').textContent=String(w.ammo).padStart(2,'0');$('capacity').textContent=stats.magazine;
-  $('weapon-status').textContent=w.reload?'RELOADING '+(w.reload/60).toFixed(1)+'s':w.overheated?'BARREL OVERHEATED':w.cooldown?'CYCLING':'WEAPON READY';
-  $('heat').textContent=Math.round(w.heat)+'% HEAT';
-  $('weapon-progress').style.width=(w.reload?100*(1-w.reload/stats.reload):100-w.heat)+'%';
+  $('weapon-status').textContent=w.reload?'RELOADING '+(w.reload/60).toFixed(1)+'s':w.overheated?'BARREL OVERHEATED':w.cooldown?(s.station==='sniper'?'CYCLING BOLT':'CYCLING'):'WEAPON READY';
+  $('heat').textContent=s.station==='sniper'?(s.sniper.adsTicks>=9?'SCOPE SETTLED':'20 MM / BOLT'):Math.round(w.heat)+'% HEAT';
+  $('weapon-progress').style.width=(w.reload?100*(1-w.reload/stats.reload):s.station==='sniper'?100*(1-w.cooldown/stats.interval):100-w.heat)+'%';
   $('weapon-progress').style.background=w.overheated?'var(--amber)':'var(--acid)';
   $('kills').textContent=s.kills;$('score').textContent=String(s.score).padStart(6,'0');
   $('combo').textContent=s.combo>=5?s.combo+' CHAIN / '+(1+Math.min(4,Math.floor(s.combo/5))*.25).toFixed(2)+'×':'NO ONE GETS THROUGH.';
   const installed=UPGRADES.filter(u=>u.id!=='repair'&&s.upgrades[s.station][u.id]>0);
-  $('upgrades').textContent=installed.length?installed.map(u=>u.name+' '+s.upgrades[s.station][u.id]).join(' · '):'No upgrades installed. Earn your first.';
+  $('upgrades').textContent=installed.length?installed.map(u=>upgradeForStation(u.id,s.station).name+' '+s.upgrades[s.station][u.id]).join(' · '):'No upgrades installed. Earn your first.';
   $('reload').disabled=screen!=='game'||paused;
+  const sniper=s.station==='sniper';document.body.classList.toggle('sniper-station',sniper);
+  $('scope').hidden=!sniper;$('scope').disabled=screen!=='game'||paused;$('scope').setAttribute('aria-pressed',String(scopeToggle||scopeHeld||padScope||keys.has('ShiftLeft')||keys.has('ShiftRight')));
+  $('touch-fire').textContent=sniper?'TAP TO FIRE':'HOLD TO FIRE';
+  $('rifle-stats').hidden=!sniper;$('rifle-stats').textContent=`${s.heads} HEADS · ${s.collaterals} COLLATERALS · ${s.quickscopes} QUICKSCOPE HITS`;
+  canvas.setAttribute('aria-label',sniper?'20 mm rifle. Right mouse or Shift to scope, left click or Space for one shot. R reloads.': 'Battlefield. Aim with the pointer or WASD and arrow keys. Hold mouse or Space to fire. R reloads.');
   $('touch-fire').disabled=screen!=='game'||paused;$('touch-reload').disabled=screen!=='game'||paused;
 }
 function launch(){
@@ -96,7 +103,7 @@ function finishRound(){
     $('upgrade-info').textContent=`Round ${state.round} cleared · ${state.roundKills} eliminated · +8 integrity. Choose an upgrade for ${station.short}.`;
     $('next-station').textContent=`NEXT: ${stationForRound(state.round+1).short} / ROUND ${state.round+1} / UPGRADES STAY WITH THEIR STATION`;
     $('upgrade-cards').replaceChildren(...state.offers.map((id,i)=>{
-      const u=UPGRADES.find(x=>x.id===id),rank=state.upgrades[state.station][id],capped=rank>=u.max,button=document.createElement('button');
+      const u=upgradeForStation(id,state.station),rank=state.upgrades[state.station][id],capped=rank>=u.max,button=document.createElement('button');
       button.className='upgrade-card';button.dataset.upgrade=id;
       for(const [tag,cls,value] of [['span','upgrade-icon',u.icon],['span','label',u.kind],['strong','',capped?'Field repairs':u.name],['p','',capped?'All ranks installed. Repair 25 outpost integrity instead.':u.description],['span','rank',id==='repair'||capped?`${i+1} / +25 HP`:`${i+1} / RANK ${rank+1}`]]){
         const el=document.createElement(tag);el.className=cls;el.textContent=value;button.append(el);
@@ -104,7 +111,7 @@ function finishRound(){
       button.addEventListener('click',()=>pickUpgrade(id));return button;
     }));$('upgrade-cards').firstElementChild?.focus({preventScroll:true});
   }else{
-    screen='lost';show('result-panel');$('result-summary').textContent=`Reached round ${state.round} · ${state.kills} confirmed · ${DIFFICULTIES[state.difficulty].name} · seed ${state.seed}`;
+    screen='lost';show('result-panel');$('result-summary').textContent=`Reached round ${state.round} · ${state.kills} confirmed · ${DIFFICULTIES[state.difficulty].name} · seed ${state.seed} · ${state.heads} rifle head hits · ${state.collaterals} collaterals`;
     $('final-score').textContent=state.score.toLocaleString();
     best[state.difficulty]=Math.max(best[state.difficulty]||0,state.score);try{localStorage.setItem('spooky.best',JSON.stringify(best));}catch{}
     $('best-score').textContent=`Personal best (${DIFFICULTIES[state.difficulty].name}): ${best[state.difficulty].toLocaleString()}`;
@@ -116,31 +123,48 @@ function pickUpgrade(id){
   screen='game';paused=false;clearInput();aim={...state.aim};cursor=project(state.station,aim.x,aim.z);clock.setPaused(false);show(null);$('pause').disabled=false;
   $('channel').textContent=stationForRound(state.round).name.toUpperCase()+' / PERIMETER DEFENCE';hud(state);focusGame();void audio.unlock();
 }
-function aimAt(event){
+function aimAt(event,down=false){
   const box=canvas.getBoundingClientRect(),scale=Math.min(box.width/WIDTH,box.height/HEIGHT);
   const x=(event.clientX-box.left-(box.width-WIDTH*scale)/2)/scale,y=(event.clientY-box.top-(box.height-HEIGHT*scale)/2)/scale;
-  cursor={x:Math.max(0,Math.min(WIDTH,x)),y:Math.max(0,Math.min(HEIGHT,y))};
+  const zoom=state.station==='sniper'?scopeZoom(state):1;
+  if(state.station==='sniper'&&(zoom>1||scopeHeld||scopeToggle||padScope||keys.has('ShiftLeft')||keys.has('ShiftRight'))){
+    if(lastPointer&&!down)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+(x-lastPointer.x)/zoom)),y:Math.max(0,Math.min(HEIGHT,cursor.y+(y-lastPointer.y)/zoom))};
+  }else cursor={x:Math.max(0,Math.min(WIDTH,x)),y:Math.max(0,Math.min(HEIGHT,y))};
+  lastPointer={x,y};
 }
 canvas.addEventListener('pointerdown',e=>{
-  if(screen!=='game'||paused||e.button>0)return;e.preventDefault();focusGame();aimPointer=e.pointerId;canvas.setPointerCapture(e.pointerId);aimAt(e);
-  if(e.pointerType==='mouse'||e.pointerType==='pen')firePointers.add(e.pointerId);
+  if(screen!=='game'||paused||e.button>0)return;e.preventDefault();focusGame();aimPointer=e.pointerId;canvas.setPointerCapture(e.pointerId);aimAt(e,true);
+  if(e.pointerType==='mouse')firePointers.add('mouse');else if(e.pointerType==='pen')firePointers.add(e.pointerId);
 });
 canvas.addEventListener('pointermove',e=>{if(screen==='game'&&!paused&&(e.pointerType==='mouse'||e.pointerId===aimPointer))aimAt(e);});
+// Mouse button events also cover chorded LMB+RMB (pointerdown only fires for the first button).
+canvas.addEventListener('mousedown',e=>{
+  if(screen!=='game'||paused)return;
+  if(e.button===2&&state.station==='sniper'){e.preventDefault();aimAt(e,true);scopeHeld=true;focusGame();}
+  if(e.button===0)firePointers.add('mouse');
+});
+window.addEventListener('mouseup',e=>{if(e.button===2)scopeHeld=false;if(e.button===0){firePointers.delete('mouse');}});
+canvas.addEventListener('pointercancel',()=>{scopeHeld=false;});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-function releasePointer(e){firePointers.delete(e.pointerId);if(e.pointerId===aimPointer)aimPointer=null;}
-window.addEventListener('pointerup',releasePointer);window.addEventListener('pointercancel',releasePointer);
-canvas.addEventListener('lostpointercapture',releasePointer);
+function releasePointer(e){firePointers.delete(e.pointerId);if(e.pointerType==='mouse')firePointers.delete('mouse');if(e.pointerId===aimPointer)aimPointer=null;}
+window.addEventListener('pointerup',releasePointer);window.addEventListener('pointercancel',e=>{cancelShot(state);releasePointer(e);});
+function releaseCapture(e){
+  if(firePointers.has(e.pointerId)||e.pointerType==='mouse'&&firePointers.has('mouse'))cancelShot(state);
+  releasePointer(e);if(e.pointerType==='mouse'){scopeHeld=false;firePointers.delete('mouse');}
+}
+canvas.addEventListener('lostpointercapture',releaseCapture);
 $('touch-fire').addEventListener('pointerdown',e=>{if(screen!=='game'||paused)return;e.preventDefault();firePointers.add(e.pointerId);e.currentTarget.setPointerCapture(e.pointerId);});
-$('touch-fire').addEventListener('lostpointercapture',releasePointer);
+$('touch-fire').addEventListener('lostpointercapture',releaseCapture);
 const editing=target=>target instanceof Element&&!!target.closest('input,select,textarea,[contenteditable="true"]');
 window.addEventListener('keydown',e=>{
   if($('manual').open||editing(e.target))return;
   if(e.code==='Escape'||e.code==='KeyP'){if(screen==='game'){e.preventDefault();if(!e.repeat)pause(!paused);}return;}
   if(screen==='upgrade'&&/^Digit[123]$/.test(e.code)&&!e.repeat){e.preventDefault();pickUpgrade(state.offers[Number(e.code.at(-1))-1]);return;}
   if(screen!=='game'||paused)return;
-  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyR','Digit1','Digit2','Digit3'].includes(e.code)){
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD','KeyR','ShiftLeft','ShiftRight','KeyQ','Digit1','Digit2','Digit3'].includes(e.code)){
     e.preventDefault();keys.add(e.code);
     if(e.code==='KeyR'&&!e.repeat)pendingReload=true;
+    if(e.code==='KeyQ'&&!e.repeat&&state.station==='sniper')scopeToggle=!scopeToggle;
     if(/^Digit[123]$/.test(e.code)&&!e.repeat)selectWeapon(state,Number(e.code.at(-1))-1);
   }
 });
@@ -153,13 +177,14 @@ $('deploy').addEventListener('click',launch);$('retry').addEventListener('click'
 $('quit').addEventListener('click',menu);$('result-menu').addEventListener('click',menu);$('pause').addEventListener('click',()=>pause(!paused));
 for(const id of ['reload','touch-reload'])$(id).addEventListener('click',()=>{if(screen==='game'&&!paused){pendingReload=true;focusGame();}});
 for(const [id,pref] of [['sound','fx'],['music','music']])$(id).addEventListener('click',()=>{prefs[pref]=!prefs[pref];preferences();savePreferences();audio.stop();if(prefs[pref])void audio.unlock();if(screen==='game'&&!paused)focusGame();});
+$('scope').addEventListener('click',()=>{if(screen==='game'&&!paused){scopeToggle=!scopeToggle;focusGame();hud(state);}});
 $('manual-open').addEventListener('click',()=>{$('manual').showModal();});$('manual-close').addEventListener('click',()=>$('manual').close());
 $('download-music').addEventListener('click',()=>{
   try{const url=URL.createObjectURL(new Blob([audio.musicWav($('soundtrack').value)],{type:'audio/wav'})),a=document.createElement('a');a.href=url;a.download='spooky-'+$('soundtrack').value+'-last-light.wav';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{notice('Soundtrack export unavailable. Your sound preferences are unchanged.');}
 });
 function readGamepad(){
   let pad;try{pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.connected&&p.mapping==='standard');}catch{}
-  if(!pad){padPrevious=[];return {x:0,y:0,fire:false};}
+  if(!pad){if(padPrevious.length&&screen==='game'&&!paused)pause();padPrevious=[];return {x:0,y:0,fire:false};}
   const buttons=pad.buttons.map(b=>b.pressed),edge=i=>buttons[i]&&!padPrevious[i];
   const axis=i=>Number.isFinite(pad.axes[i])&&Math.abs(pad.axes[i])>.2?Math.max(-1,Math.min(1,pad.axes[i])):0;
   const x=axis(0),y=axis(1);
@@ -168,18 +193,18 @@ function readGamepad(){
     if(edge(9))pause(!paused);
     if(!paused&&!padBlocked){if(edge(2))pendingReload=true;const station=stationForRound(state.round),index=station.weapons.indexOf(state.weapon);if(edge(4))selectWeapon(state,(index+station.weapons.length-1)%station.weapons.length);if(edge(5))selectWeapon(state,(index+1)%station.weapons.length);}
   }
-  padPrevious=buttons;return padBlocked?{x:0,y:0,fire:false}:{x,y,fire:buttons[0]||buttons[7]};
+  padPrevious=buttons;return padBlocked?{x:0,y:0,fire:false}:{x,y,fire:buttons[0]||buttons[7],scope:buttons[6]};
 }
 let lastHud=0;
 function frame(now){
-  const delta=Math.max(0,(now-last)/1000);last=now;const pad=readGamepad();
+  const delta=Math.max(0,(now-last)/1000);last=now;const pad=readGamepad();padScope=Boolean(pad.scope);
   if(screen==='game'&&!paused){
     clock.advance(delta,()=>{
       const dx=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0)+pad.x;
       const dy=(keys.has('ArrowDown')||keys.has('KeyS')?1:0)-(keys.has('ArrowUp')||keys.has('KeyW')?1:0)+pad.y;
-      if(dx||dy)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+dx*7)),y:Math.max(0,Math.min(HEIGHT,cursor.y+dy*6))};
+      if(dx||dy)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+dx*7/(state.station==='sniper'?scopeZoom(state):1))),y:Math.max(0,Math.min(HEIGHT,cursor.y+dy*6/(state.station==='sniper'?scopeZoom(state):1)))};
       aim=aimFromScreen(state,cursor.x,cursor.y);
-      step(state,{...aim,fire:firePointers.size>0||keys.has('Space')||pad.fire,reload:pendingReload});pendingReload=false;
+      step(state,{...aim,fire:firePointers.size>0||keys.has('Space')||pad.fire,reload:pendingReload,scope:scopeHeld||scopeToggle||keys.has('ShiftLeft')||keys.has('ShiftRight')||pad.scope});pendingReload=false;
       for(const e of state.events){renderer.event(e);audio.event({...e,tick:state.tick},prefs.fx);if(e.type==='breach')notice('PERIMETER BREACHED / OUTPOST TAKING DAMAGE');if(e.type==='hot')notice('BARREL HOT / RELEASE FIRE TO COOL');}
       if(state.status!=='playing')finishRound();
     });
