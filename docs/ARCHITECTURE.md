@@ -42,7 +42,7 @@ The 40 mm and 105 mm have separate damage/radius budgets and the 105 mm has a de
 
 The fixed camera has origin `[0, 15000/720, 127]`. The pure sight ray inverts the existing infantry perspective. Animated head, torso, arm and leg boxes are shared by renderer and tracer. One closest region per living enemy is collected before the nearest building, then sorted by distance and ID. Damage attenuates per penetration and the cap comes from station upgrades. Sniper buildings use flat roofs matching their solid bounds; the thin relay antenna, trees and ground decoration remain cosmetic. Fuel drums are blast-reactive scenery, not rifle targets. Tracers terminate at cover or the penetration cap; they never create a splash explosion.
 
-Scope settle/quickscope windows and a short one-edge fire buffer are adapted from QUICKSCOPER to integer 60 Hz ticks. Early bolt clicks are ignored; late clicks can wait up to 11 ticks. Scope release, reload and lifecycle cancellation clear buffered scoped shots. Holding the trigger cannot fire another round. The same smooth ADS factor determines both magnification and pointer delta scaling. Input positions include the canvas contain scale and letterbox offset.
+Scope settle/quickscope windows and a short one-edge fire buffer are adapted from QUICKSCOPER to integer 60 Hz ticks. Early bolt clicks are ignored; late clicks can wait up to 11 ticks. Scope release, reload and lifecycle cancellation clear buffered scoped shots. Holding the trigger cannot fire another round. ADS magnifies around the absolute canvas aim point. Pointer input no longer switches to relative deltas, and the reticle is never pulled towards the viewport centre. The projected aim point is a fixed point of the zoom transform, so the ray, visible reticle and native pointer agree through every ADS phase. Input positions include the canvas contain scale and letterbox offset.
 
 The fourth station adds a quieter high-register triangle lead to the deterministic march, plus a rifle crack and a timed mechanical bolt event. Its WAV export uses the same verified VANILLAJS score path.
 
@@ -51,6 +51,10 @@ The fourth station adds a quieter high-register triangle lead to the determinist
 `js/display.js` is copied byte-for-byte from `QSOLKCB/Outruin` PR #4 at `94ae4abdcd3e29721d5d4f5d2415246a9551f8b9`; `vendor/OUTRUIN.json` records its Git blob identity. Spooky's layout and input integration are original. The checker verifies both upstream pins.
 
 Fit window and native fullscreen reserve room for the header, telemetry, weapon/ammo controls and touch buttons, then contain the fixed 1152×720 canvas in the remaining space. Pointer conversion uses the same contain scale and letterbox offsets. Windowed page preserves scrolling. Overlay content scrolls internally on short screens. The native fullscreen event owns the displayed state; only fit/page preferences are saved, never a fullscreen request. Changes pause combat and clear held controls. Denied/unavailable fullscreen falls back to Fit window.
+
+## Cadet pacing
+
+Wave size multiplies the existing round formula by `DIFFICULTIES[difficulty].wave` (0.45 for Cadet, 1 otherwise), rounded to whole contacts. Cadet arrival spacing is 1.35× the normal interval and a further 2× at the rifle. Its first sniper deployment starts after 150 ticks, with an active cap of four; later sniper visits add one slot up to eight. Spawn scheduling waits while that cap is full, without dropping pending enemies or accumulating a countdown backlog. Night watch and Blackout retain their existing sizes and cadence.
 
 ## Runtime safeguards
 

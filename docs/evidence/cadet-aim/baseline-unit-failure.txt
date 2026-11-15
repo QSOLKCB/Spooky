@@ -1,0 +1,40 @@
+✖ Cadet has smaller, strictly growing waves and the first sniper wave has 20 targets (3.117822ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 188.921577
+
+✖ failing tests:
+
+test at tests/cadet.test.js:12:1
+✖ Cadet has smaller, strictly growing waves and the first sniper wave has 20 targets (3.117822ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    [
+  +   24,
+  +   31,
+  +   38,
+  +   45
+  -   11,
+  -   14,
+  -   17,
+  -   20
+    ]
+
+      at TestContext.<anonymous> (file:///workspace/scratch/db4b0de70b71/Spooky-aim-baseline/tests/cadet.test.js:13:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 24, 31, 38, 45 ],
+    expected: [ 11, 14, 17, 20 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

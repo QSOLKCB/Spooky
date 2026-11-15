@@ -9,7 +9,10 @@ export const TICK_RATE = 60;
 export const BOUNDS = Object.freeze({minX:-52,maxX:52,minZ:4,maxZ:96,wire:91});
 const own = (o,k) => Object.prototype.hasOwnProperty.call(o,k);
 const blank = () => ({damage:0,radius:0,rate:0,capacity:0,cooling:0,repair:0});
-export function waveSize(round) { return 17+7*round+Math.floor((round-1)/STATIONS.length)*5; }
+export function waveSize(round,difficulty='night') {
+  const base=17+7*round+Math.floor((round-1)/STATIONS.length)*5;
+  return Math.max(1,Math.round(base*DIFFICULTIES[difficulty].wave));
+}
 export function weaponStats(s, key=s.weapon) {
   const w=WEAPONS[key], station=STATIONS.find(x=>x.weapons.includes(key)), u=s.upgrades[station.id];
   return {...w,damage:w.damage*(1+u.damage*.25),radius:w.radius*(1+u.radius*.16),
@@ -30,7 +33,7 @@ export function create({seed=13013,difficulty='night'}={}) {
 }
 function beginRound(s) {
   s.station=stationForRound(s.round).id;s.weapon=stationForRound(s.round).weapons[0];
-  s.total=waveSize(s.round);s.spawned=0;s.resolved=0;s.roundTick=0;s.roundKills=0;s.nextSpawn=55;
+  s.total=waveSize(s.round,s.difficulty);s.spawned=0;s.resolved=0;s.roundTick=0;s.roundKills=0;s.nextSpawn=s.station==='sniper'&&s.difficulty==='cadet'?150:55;
   s.enemies=[];s.shells=[];s.effects=[];s.offers=[];s.status='playing';
   s.particles=[];s.craters=[];s.remains=[];s.fuel=freshFuel();s.hitConfirm=null;s.target=null;s.sniper=freshSight();s.rifleConfirm=null;
   // Every station arrives resupplied. Upgrades survive every rotation.
@@ -46,7 +49,8 @@ function spawn(s) {
   s.enemies.push({id:s.nextId++,kind,x:clamp(lane*16+(random()-.5)*18,-47,47),z:7+random()*8,
     hp,maxHp:hp,speed:spec.speed*DIFFICULTIES[s.difficulty].pressure*(1+Math.min(1,(s.round-1)*.025)),
     phase:random()*6.28,flash:0,kx:0,kz:0,stagger:0,stride:0,vx:0,vz:0,variant:Math.floor(random()*4)});
-  s.spawned++;s.nextSpawn=Math.max(12,41-s.round)+Math.floor(random()*15);
+  const difficulty=DIFFICULTIES[s.difficulty],cadence=difficulty.spawn*(s.station==='sniper'?difficulty.sniperSpawn:1);
+  s.spawned++;s.nextSpawn=Math.round((Math.max(12,41-s.round)+Math.floor(random()*15))*cadence);
 }
 export function selectWeapon(s,index) {
   if(s.status!=='playing'||!Number.isInteger(index))return false;
@@ -191,7 +195,10 @@ export function step(s,input={}) {
   advanceParticles(s);
   if(s.tick>=s.comboUntil)s.combo=0;
   if(s.hp<=0){s.status='lost';s.events.push({type:'lost'});return;}
-  if(s.spawned<s.total&&--s.nextSpawn<=0)spawn(s);
+  // Cadet overwatch introduces a few targets at a time. The next arrival waits
+  // while the field is full, so a reload cannot create an unseen spawn backlog.
+  const activeLimit=s.difficulty==='cadet'&&s.station==='sniper'?Math.min(8,4+Math.floor((s.round-4)/STATIONS.length)):Infinity;
+  if(s.spawned<s.total&&s.enemies.length<activeLimit&&--s.nextSpawn<=0)spawn(s);
   if(s.resolved===s.total&&s.spawned===s.total&&s.shells.length===0){
     s.status='upgrade';s.hp=Math.min(100,s.hp+8);s.score+=s.round*200;draft(s);s.events.push({type:'clear'});
   }

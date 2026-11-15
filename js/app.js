@@ -3,7 +3,6 @@ import {FixedClock} from '../vendor/vanillajs/modules/time/index.js';
 import {create,step,chooseUpgrade,selectWeapon,weaponStats,cancelInput,cancelShot} from './sim.js';
 import {STATIONS,UPGRADES,stationForRound,DIFFICULTIES,upgradeForStation} from './content.js';
 import {createRenderer,project,aimFromScreen,WIDTH,HEIGHT} from './render.js';
-import {scopeZoom} from './sniper.js';
 import {createAudio} from './audio.js';
 import {Display} from './display.js';
 const $=id=>document.getElementById(id),canvas=$('field'),renderer=createRenderer(canvas);
@@ -13,7 +12,7 @@ let cursor=project(state.station,aim.x,aim.z);
 let demo=create(),last=performance.now(),uiStation='',uiWeapon='',best={},prefs={fx:true,music:true};
 try{const data=JSON.parse(localStorage.getItem('spooky.preferences')||'null');if(data&&typeof data.fx==='boolean'&&typeof data.music==='boolean')prefs={fx:data.fx,music:data.music};}catch{}
 try{const data=JSON.parse(localStorage.getItem('spooky.best')||'{}');for(const key of Object.keys(DIFFICULTIES))if(Number.isSafeInteger(data[key])&&data[key]>=0)best[key]=data[key];}catch{}
-const keys=new Set(),firePointers=new Set();let aimPointer=null,padPrevious=[],padBlocked=true,scopeHeld=false,scopeToggle=false,padScope=false,lastPointer=null;
+const keys=new Set(),firePointers=new Set();let aimPointer=null,padPrevious=[],padBlocked=true,scopeHeld=false,scopeToggle=false,padScope=false;
 const audio=createAudio(()=>notice('Audio unavailable this session. Combat stays active.'));
 let windowMode='fit';try{windowMode=localStorage.getItem('spooky.display')||'fit';}catch{}
 const display=new Display({select:$('display-mode'),button:$('fullscreen'),feedback:$('display-feedback'),initial:windowMode,
@@ -28,7 +27,7 @@ function preferences(){
 }
 function savePreferences(){try{localStorage.setItem('spooky.preferences',JSON.stringify(prefs));}catch{}}
 function clearInput(){
-  keys.clear();firePointers.clear();pendingReload=false;padBlocked=true;scopeHeld=false;scopeToggle=false;padScope=false;lastPointer=null;cancelInput(state);
+  keys.clear();firePointers.clear();pendingReload=false;padBlocked=true;scopeHeld=false;scopeToggle=false;padScope=false;cancelInput(state);
   $('scope').setAttribute('aria-pressed','false');
   if(aimPointer!==null){try{canvas.releasePointerCapture(aimPointer);}catch{}aimPointer=null;}
 }
@@ -123,24 +122,22 @@ function pickUpgrade(id){
   screen='game';paused=false;clearInput();aim={...state.aim};cursor=project(state.station,aim.x,aim.z);clock.setPaused(false);show(null);$('pause').disabled=false;
   $('channel').textContent=stationForRound(state.round).name.toUpperCase()+' / PERIMETER DEFENCE';hud(state);focusGame();void audio.unlock();
 }
-function aimAt(event,down=false){
+function aimAt(event){
   const box=canvas.getBoundingClientRect(),scale=Math.min(box.width/WIDTH,box.height/HEIGHT);
   const x=(event.clientX-box.left-(box.width-WIDTH*scale)/2)/scale,y=(event.clientY-box.top-(box.height-HEIGHT*scale)/2)/scale;
-  const zoom=state.station==='sniper'?scopeZoom(state):1;
-  if(state.station==='sniper'&&(zoom>1||scopeHeld||scopeToggle||padScope||keys.has('ShiftLeft')||keys.has('ShiftRight'))){
-    if(lastPointer&&!down)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+(x-lastPointer.x)/zoom)),y:Math.max(0,Math.min(HEIGHT,cursor.y+(y-lastPointer.y)/zoom))};
-  }else cursor={x:Math.max(0,Math.min(WIDTH,x)),y:Math.max(0,Math.min(HEIGHT,y))};
-  lastPointer={x,y};
+  // Mouse, pen and touch always use the visible canvas position, including during
+  // ADS, bolt cycling and reload. The lens magnifies around this same aim point.
+  cursor={x:Math.max(0,Math.min(WIDTH,x)),y:Math.max(0,Math.min(HEIGHT,y))};
 }
 canvas.addEventListener('pointerdown',e=>{
-  if(screen!=='game'||paused||e.button>0)return;e.preventDefault();focusGame();aimPointer=e.pointerId;canvas.setPointerCapture(e.pointerId);aimAt(e,true);
+  if(screen!=='game'||paused||e.button>0)return;e.preventDefault();focusGame();aimPointer=e.pointerId;canvas.setPointerCapture(e.pointerId);aimAt(e);
   if(e.pointerType==='mouse')firePointers.add('mouse');else if(e.pointerType==='pen')firePointers.add(e.pointerId);
 });
 canvas.addEventListener('pointermove',e=>{if(screen==='game'&&!paused&&(e.pointerType==='mouse'||e.pointerId===aimPointer))aimAt(e);});
 // Mouse button events also cover chorded LMB+RMB (pointerdown only fires for the first button).
 canvas.addEventListener('mousedown',e=>{
   if(screen!=='game'||paused)return;
-  if(e.button===2&&state.station==='sniper'){e.preventDefault();aimAt(e,true);scopeHeld=true;focusGame();}
+  if(e.button===2&&state.station==='sniper'){e.preventDefault();aimAt(e);scopeHeld=true;focusGame();}
   if(e.button===0)firePointers.add('mouse');
 });
 window.addEventListener('mouseup',e=>{if(e.button===2)scopeHeld=false;if(e.button===0){firePointers.delete('mouse');}});
@@ -202,7 +199,7 @@ function frame(now){
     clock.advance(delta,()=>{
       const dx=(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0)+pad.x;
       const dy=(keys.has('ArrowDown')||keys.has('KeyS')?1:0)-(keys.has('ArrowUp')||keys.has('KeyW')?1:0)+pad.y;
-      if(dx||dy)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+dx*7/(state.station==='sniper'?scopeZoom(state):1))),y:Math.max(0,Math.min(HEIGHT,cursor.y+dy*6/(state.station==='sniper'?scopeZoom(state):1)))};
+      if(dx||dy)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+dx*7)),y:Math.max(0,Math.min(HEIGHT,cursor.y+dy*6))};
       aim=aimFromScreen(state,cursor.x,cursor.y);
       step(state,{...aim,fire:firePointers.size>0||keys.has('Space')||pad.fire,reload:pendingReload,scope:scopeHeld||scopeToggle||keys.has('ShiftLeft')||keys.has('ShiftRight')||pad.scope});pendingReload=false;
       for(const e of state.events){renderer.event(e);audio.event({...e,tick:state.tick},prefs.fx);if(e.type==='breach')notice('PERIMETER BREACHED / OUTPOST TAKING DAMAGE');if(e.type==='hot')notice('BARREL HOT / RELEASE FIRE TO COOL');}

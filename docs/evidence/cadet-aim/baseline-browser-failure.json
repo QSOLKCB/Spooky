@@ -1,0 +1,24 @@
+{
+  "status": "FAIL",
+  "started": "2026-11-15T16:16:28.177Z",
+  "checks": [
+    "landscape tablets show touch controls and preserve independent aim/fire/reload input",
+    "Fit window keeps the complete battlefield, HUD and controls visible on short screens",
+    "native fullscreen enters and exits through one controller, pauses combat and clears held fire",
+    "fullscreen denial falls back to Fit window; window preference persists and short menus scroll",
+    "all station scenes render gravity debris, fuel chains and distinct enemy silhouettes without mutating combat",
+    "105 mm has a much larger visible blast and finite effects at full upgrades",
+    "sniper scope magnifies actual voxel hitboxes and renders deterministic headshot/collateral feedback",
+    "desktop briefing and manual are usable",
+    "field manual exports the selected complete station soundtrack",
+    "Space still fires after toolbar clicks; weapon and reload controls work",
+    "pause and lost focus freeze combat and cancel held fire",
+    "gunship: complete a wave through actual input handlers and choose an upgrade",
+    "artillery: complete a wave through actual input handlers and choose an upgrade",
+    "infantry: complete a wave through actual input handlers and choose an upgrade"
+  ],
+  "errors": [],
+  "browser": "141.0.7390.37",
+  "failure": "Error: fit 1440: scope tick 1: pointer/reticle error 7.95 CSS px; zoom pivot error 8.11 canvas px\n    at aligned (file:///workspace/scratch/db4b0de70b71/Spooky-aim-baseline/tests/browser.mjs:288:132)\n    at async file:///workspace/scratch/db4b0de70b71/Spooky-aim-baseline/tests/browser.mjs:300:95\n    at async check (file:///workspace/scratch/db4b0de70b71/Spooky-aim-baseline/tests/browser.mjs:24:31)\n    at async file:///workspace/scratch/db4b0de70b71/Spooky-aim-baseline/tests/browser.mjs:270:18",
+  "finished": "2026-11-15T16:16:47.860Z"
+}

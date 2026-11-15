@@ -1,0 +1,2 @@
+Built 29 public files; no build or test dependencies shipped.
+PASS: 11 pinned upstream files, 27 public files, local imports and current offline manifest.
