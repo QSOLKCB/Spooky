@@ -4,6 +4,7 @@ import {create,step,chooseUpgrade,selectWeapon,weaponStats} from './sim.js';
 import {STATIONS,UPGRADES,stationForRound,DIFFICULTIES} from './content.js';
 import {createRenderer,project,aimFromScreen,WIDTH,HEIGHT} from './render.js';
 import {createAudio} from './audio.js';
+import {Display} from './display.js';
 const $=id=>document.getElementById(id),canvas=$('field'),renderer=createRenderer(canvas);
 const clock=new FixedClock({step:1/60,maxFrame:.15,maxSteps:8});
 let state=create(),screen='menu',paused=false,aim={x:0,z:45},pendingReload=false,noticeUntil=0;
@@ -13,6 +14,10 @@ try{const data=JSON.parse(localStorage.getItem('spooky.preferences')||'null');if
 try{const data=JSON.parse(localStorage.getItem('spooky.best')||'{}');for(const key of Object.keys(DIFFICULTIES))if(Number.isSafeInteger(data[key])&&data[key]>=0)best[key]=data[key];}catch{}
 const keys=new Set(),firePointers=new Set();let aimPointer=null,padPrevious=[],padBlocked=true;
 const audio=createAudio(()=>notice('Audio unavailable this session. Combat stays active.'));
+let windowMode='fit';try{windowMode=localStorage.getItem('spooky.display')||'fit';}catch{}
+const display=new Display({select:$('display-mode'),button:$('fullscreen'),feedback:$('display-feedback'),initial:windowMode,
+  save:mode=>{try{localStorage.setItem('spooky.display',mode);}catch{}},
+  onChange:()=>{clearInput();if(screen==='game')pause();else audio.stop();}});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 for(let i=0;i<650;i++)step(demo);
 function notice(message){$('notice').textContent=message;noticeUntil=performance.now()+3500;}
@@ -66,6 +71,7 @@ function hud(s){
 function launch(){
   const seed=Number($('seed').value);
   if($('seed').value===''||!Number.isInteger(seed)||seed<0||seed>4294967295){notice('Enter a whole-number seed between 0 and 4294967295.');$('seed').focus();return;}
+  document.body.classList.add('playing');display.refresh();
   state=create({seed,difficulty:$('difficulty').value});screen='game';paused=false;aim={...state.aim};cursor=project(state.station,aim.x,aim.z);
   clearInput();clock.reset();clock.setPaused(false);show(null);$('pause').disabled=false;$('pause').innerHTML='Ⅱ <span>PAUSE</span>';
   $('channel').textContent='SPECTRE 01 / PERIMETER DEFENCE';uiStation='';hud(state);focusGame();void audio.unlock();
@@ -79,6 +85,7 @@ function pause(value=true){
   hud(state);
 }
 function menu(){
+  document.body.classList.remove('playing');display.refresh();
   clearInput();audio.stop();paused=false;screen='menu';clock.setPaused(true);show('briefing');$('pause').disabled=true;$('pause').innerHTML='Ⅱ <span>PAUSE</span>';
   $('channel').textContent='SPECTRE 01 / AWAITING DEPLOYMENT';state=create();uiStation='';hud(state);$('deploy').focus({preventScroll:true});
 }
@@ -148,7 +155,7 @@ for(const id of ['reload','touch-reload'])$(id).addEventListener('click',()=>{if
 for(const [id,pref] of [['sound','fx'],['music','music']])$(id).addEventListener('click',()=>{prefs[pref]=!prefs[pref];preferences();savePreferences();audio.stop();if(prefs[pref])void audio.unlock();if(screen==='game'&&!paused)focusGame();});
 $('manual-open').addEventListener('click',()=>{$('manual').showModal();});$('manual-close').addEventListener('click',()=>$('manual').close());
 $('download-music').addEventListener('click',()=>{
-  try{const url=URL.createObjectURL(new Blob([audio.musicWav()],{type:'audio/wav'})),a=document.createElement('a');a.href=url;a.download='spooky-last-light.wav';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{notice('Soundtrack export unavailable. Your sound preferences are unchanged.');}
+  try{const url=URL.createObjectURL(new Blob([audio.musicWav($('soundtrack').value)],{type:'audio/wav'})),a=document.createElement('a');a.href=url;a.download='spooky-'+$('soundtrack').value+'-last-light.wav';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{notice('Soundtrack export unavailable. Your sound preferences are unchanged.');}
 });
 function readGamepad(){
   let pad;try{pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.connected&&p.mapping==='standard');}catch{}
@@ -173,10 +180,10 @@ function frame(now){
       if(dx||dy)cursor={x:Math.max(0,Math.min(WIDTH,cursor.x+dx*7)),y:Math.max(0,Math.min(HEIGHT,cursor.y+dy*6))};
       aim=aimFromScreen(state,cursor.x,cursor.y);
       step(state,{...aim,fire:firePointers.size>0||keys.has('Space')||pad.fire,reload:pendingReload});pendingReload=false;
-      for(const e of state.events){renderer.event(e);audio.event(e,prefs.fx);if(e.type==='breach')notice('PERIMETER BREACHED / OUTPOST TAKING DAMAGE');if(e.type==='hot')notice('BARREL HOT / RELEASE FIRE TO COOL');}
+      for(const e of state.events){renderer.event(e);audio.event({...e,tick:state.tick},prefs.fx);if(e.type==='breach')notice('PERIMETER BREACHED / OUTPOST TAKING DAMAGE');if(e.type==='hot')notice('BARREL HOT / RELEASE FIRE TO COOL');}
       if(state.status!=='playing')finishRound();
     });
-    audio.sync(state.tick,prefs.music&&screen==='game'&&!paused);
+    audio.sync(state.tick,prefs.music&&screen==='game'&&!paused,state.station);
   }
   if(screen==='menu'){
     // Attract scene runs independently from the next deployment's seed and state.

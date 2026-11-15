@@ -1,0 +1,38 @@
+✔ original 32-second score is deterministic, non-silent and wraps at exact ticks (193.350687ms)
+✔ every station has distinct deterministic sound effects and valid WAV output (32.004344ms)
+✔ missing audio device is contained and never escapes into combat (1.780037ms)
+✔ all three complete station arrangements export distinct repeatable loops (2394.429685ms)
+✔ spatial effects preserve tick spacing, remain bounded and survive music being disabled (92.458228ms)
+✔ partial voice failures release allocated nodes and a new gesture recovers audio (3.338819ms)
+✔ VANILLAJS shell integration follows gravity and reaches the selected impact on its flight tick (6.312621ms)
+✔ surviving targets receive radial impulse and heavy bodies resist displacement (10.123387ms)
+✔ crowds navigate building footprints without tunnelling or becoming stuck (71.873077ms)
+✔ fuel chains detonate each drum once and do not award extra kills or shot accuracy (2.020109ms)
+✔ head picking yields a single-target critical hit for the direct-fire weapons (1.143721ms)
+✔ seeded debris bounces, settles and expires while presentation storage stays bounded (13.690575ms)
+✔ seed and difficulty validation rejects malformed public construction (4.214896ms)
+✔ seeded input streams reproduce full state including choices (732.102137ms)
+✔ a real nine-round run rotates stations, escalates hordes and retains upgrades (177.444706ms)
+✔ every weapon hits real targets and heavy blasts damage groups once (5.480776ms)
+✔ artillery has a real delay and leading a moving target matters (1.443424ms)
+✔ magazines, manual reload and automatic empty reload preserve cadence (0.95216ms)
+✔ switching gunship weapons cannot refill or cancel their reload/cooldown (0.328538ms)
+✔ M2 overheats, refuses shots during recovery and becomes usable again (2.183506ms)
+✔ cooling, capacity, radius, damage and rate upgrades change actual weapon stats (0.428055ms)
+✔ a breach damages the outpost exactly once; loss freezes every field (0.633892ms)
+✔ passive play really loses; several seeds expose all enemy classes (2395.244709ms)
+✔ upgrade choices are transactional and capped upgrades become field repairs (0.59033ms)
+✔ terminal wave waits for in-flight shells; offers remain three distinct IDs at rank limits (0.630976ms)
+✔ nonfinite aim is ignored, finite aim clamps, and untrusted indices are inert (1.689649ms)
+✔ ground projection inverts across all stations and the whole play area (0.541348ms)
+✔ clicking visible heads and torsos targets the body rather than distant terrain (2.1399ms)
+✔ fixed clock produces identical combat at 30/60/120/144 Hz with bounded catch-up (58.758989ms)
+✔ seed sweep maintains finite state and bounded effects during actual combat (1138.956992ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4820.564925

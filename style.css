@@ -16,3 +16,64 @@
   #touch-fire{background:var(--acid);color:#1c2816;min-width:135px;min-height:46px;touch-action:none;user-select:none;-webkit-user-select:none}
   #touch-reload{min-height:46px}
 }
+
+/* Outruin-style display modes. Canvas coordinates stay 1152 × 720 in every mode. */
+.display-label{font:8px ui-monospace,monospace;letter-spacing:1px;color:var(--muted);display:flex;flex-direction:column;justify-content:center;gap:4px}
+#display-mode{border:1px solid var(--line);background:#172414;color:var(--ink);font:10px ui-monospace,monospace;padding:6px;max-width:145px}
+#display-feedback{position:fixed;top:5px;left:50%;transform:translateX(-50%);z-index:10;background:#172414;color:var(--acid);font:11px ui-monospace,monospace;margin:0;padding:10px;max-width:90%;border:1px solid var(--line)}
+#display-feedback:empty{display:none}
+.fit-screen{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.fit-screen .masthead{min-height:62px;padding:8px 20px;flex:0 0 auto}
+.fit-screen .brand>span{font-size:22px}.fit-screen .brand small{font-size:8px;margin-top:6px}
+.fit-screen .game-layout{flex:1;min-height:0;width:100%;padding:12px 20px 0;grid-template-columns:minmax(0,1fr) 220px;gap:20px}
+.fit-screen .combat-column{display:flex;flex-direction:column;min-height:0}
+.fit-screen .combat-stats{min-height:60px;padding:8px 18px;flex:0 0 auto}
+.fit-screen .combat-stats strong{font-size:23px}
+.fit-screen .viewport{flex:1;min-height:0;aspect-ratio:auto;background:#0c1511}
+.fit-screen .viewport canvas{object-fit:contain}
+.fit-screen .combat-footer{flex:0 0 auto;padding:8px 0;font-size:8px}
+.fit-screen .touch-controls{flex:0 0 auto;margin-bottom:8px}
+.fit-screen .command-panel{min-height:0;overflow:auto;padding-left:20px}
+.fit-screen .station-heading h2{font-size:30px;margin:15px 0 10px}
+.fit-screen .station-heading p{font-size:11px;margin-bottom:16px}
+.fit-screen .tip,.fit-screen .side-footer{display:none}
+.fit-screen .weapon-select{margin-bottom:12px}
+.fit-screen .ammo-readout strong{font-size:38px}
+.fit-screen .upgrades-list{margin:15px 0}.fit-screen .run-stats{padding:12px 0}
+.fit-screen .page-footer{flex:0 0 auto;width:100%;padding:8px 20px;font-size:7px}
+.overlay{align-items:safe center}.overlay .panel{flex-shrink:0;margin-block:auto}
+@media(max-width:1050px){.fit-screen .station-route{display:none}}
+@media(max-width:850px){
+  .masthead{flex-wrap:wrap}.header-actions{align-items:center;flex-wrap:wrap}.display-label{flex-direction:row;align-items:center}
+  .fit-screen .masthead{flex-wrap:nowrap;gap:8px;padding:7px 12px;min-height:58px}
+  .fit-screen .brand{gap:5px}.fit-screen .brand svg{width:26px;height:26px}.fit-screen .brand>span{font-size:18px;letter-spacing:1px}.fit-screen .brand small{letter-spacing:3px}
+  .fit-screen .header-actions{gap:4px;justify-content:flex-end}.fit-screen .header-actions button{font-size:9px;padding:7px}
+  .fit-screen .display-label{font-size:7px}.fit-screen #display-mode{font-size:9px;padding:5px}
+  .fit-screen .game-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;padding:8px 12px 0;gap:4px}
+  .fit-screen .command-panel{padding:8px 0;gap:6px 18px;overflow:visible}
+  .fit-screen .weapon-select{margin:0}.fit-screen .ammo-readout strong{font-size:28px}.fit-screen .meter-label{font-size:7px}
+  .fit-screen .run-stats{padding:0}.fit-screen .run-stats strong{font-size:16px}
+  .fit-screen .upgrades-list{display:none}.fit-screen .page-footer{display:none}
+  .fit-screen .combat-stats{min-height:49px;padding:7px 12px;gap:12px}.fit-screen .combat-stats strong{font-size:20px}
+  .fit-screen .round-stat{min-width:42px;padding-right:12px}.fit-screen .integrity-stat{width:120px}
+  .fit-screen .combat-footer>span:last-child{display:none}
+  .fit-screen .overlay{padding:18px}.fit-screen .panel h1{font-size:clamp(32px,6vw,60px)}
+}
+@media(max-width:500px){
+  .fit-screen .brand svg{display:none}.fit-screen .header-actions{max-width:215px}.fit-screen .display-label{width:100%;justify-content:flex-end}
+  .fit-screen .masthead{min-height:78px}.fit-screen .combat-stats .label{font-size:7px;letter-spacing:.3px}
+  .fit-screen .threat-stat{gap:5px}.fit-screen .integrity-stat{width:100px}.fit-screen .combat-footer{font-size:7px}
+  .fit-screen .touch-controls span{display:none}.fit-screen #touch-fire{min-width:125px}
+  .fit-screen .command-panel{gap:5px 12px}.fit-screen .weapon-select button{font-size:9px}
+  .fit-screen .panel h2{font-size:30px}.fit-screen .upgrade-panel{padding:12px}
+}
+@media(max-height:520px) and (min-width:600px){
+  .fit-screen .masthead{min-height:47px;padding:5px 12px}.fit-screen .brand small{display:none}
+  .fit-screen .game-layout{grid-template-columns:minmax(0,1fr) 165px;grid-template-rows:minmax(0,1fr);padding:5px 12px 0;gap:12px}
+  .fit-screen .command-panel{display:flex;flex-direction:column;border-top:0;border-left:1px solid var(--line);padding:5px 0 0 12px;overflow:auto}
+  .fit-screen .station-heading,.fit-screen .upgrades-list,.fit-screen .page-footer{display:none}
+  .fit-screen .weapon-select{width:100%}.fit-screen .combat-stats{min-height:43px}.fit-screen .touch-controls{margin-bottom:4px}
+  .fit-screen .combat-footer{padding:5px 0}.fit-screen .panel h1{font-size:40px}
+}
+
+.soundtrack-label{display:block;font:10px ui-monospace,monospace;color:var(--muted);margin:20px 0 8px}#soundtrack{max-width:100%;padding:10px;background:#172414;color:var(--ink);border:1px solid var(--line);margin:0 10px 10px 0}

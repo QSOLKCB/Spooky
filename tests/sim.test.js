@@ -10,7 +10,8 @@ function enemy(s,{x=0,z=45,kind='walker',hp=ENEMIES[kind].hp,speed=0}={}){const 
 function quiet(s=create()){s.nextSpawn=100000;return s;}
 function atStation(station){const s=quiet();s.round={gunship:1,artillery:2,infantry:3}[station];s.station=station;s.weapon=stationForRound(s.round).weapons[0];return s;}
 function pilot(s){
-  const weapon=s.station==='gunship'?2:0,key=stationForRound(s.round).weapons[weapon];
+  // Cycle ready gunship weapons; obstacle steering disperses targets between salvos.
+  const weapon=s.station==='gunship'?([2,1,0].find(i=>{const gun=s.weapons[stationForRound(s.round).weapons[i]];return !gun.cooldown&&!gun.reload&&!gun.overheated;})??0):0,key=stationForRound(s.round).weapons[weapon];
   const e=s.enemies.reduce((a,b)=>!a||b.z>a.z?b:a,null),w=weaponStats(s,key);
   return {x:e?.x??0,z:e?e.z+e.speed*w.flight:45,fire:!!e,weapon};
 }
@@ -117,7 +118,7 @@ test('ground projection inverts across all stations and the whole play area',()=
 test('clicking visible heads and torsos targets the body rather than distant terrain',()=>{
   for(const station of ['gunship','artillery','infantry'])for(const kind of Object.keys(ENEMIES))for(const z of [12,50,85]){
     const s=atStation(station),e=enemy(s,{x:12,z,kind}),b=enemyBounds(station,e);
-    for(const y of [b.centerY,b.top+3,b.bottom-3])assert.deepEqual(aimFromScreen(s,b.centerX,y),{x:e.x,z:e.z});
+    for(const y of [b.centerY,b.top+3,b.bottom-3]){const aim=aimFromScreen(s,b.centerX,y);assert.equal(aim.x,e.x);assert.equal(aim.z,e.z);assert.equal(aim.targetId,e.id);assert.equal(aim.head,y===b.top+3);}
   }
 });
 test('fixed clock produces identical combat at 30/60/120/144 Hz with bounded catch-up',()=>{

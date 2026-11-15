@@ -10,6 +10,12 @@ Outpost Echo shares one integrity pool across all three stations. Protect the il
 
 The sequence repeats indefinitely. A wave contains `17 + 7 × round + 5 × floor((round − 1) / 3)` enemies: 24, 31, 38, 50, 57, 64… They spawn progressively, rather than all appearing at once. Later rounds also increase health and movement pressure. Bulwarks are probabilistic from round 3, not guaranteed in every small sample.
 
+## Work the battlefield
+
+Orange fuel drums detonate once, damage nearby creatures and chain into neighbouring drums. Each awards 25 points and is replenished with the next round. Heavy blasts stagger and push surviving targets; bulwarks resist displacement. Creatures separate and steer around buildings, so their path can change while a shell is airborne. Switch gunship weapons between heavy salvos to keep scattered runners under pressure.
+
+Aim at a creature's head with the 25 mm or M2 for 1.65× damage to that creature. Other targets caught by the shot take normal damage. Artillery and the 40/105 mm rely on their area damage.
+
 ## Upgrade draft
 
 After every wave, choose one of three distinct cards for the **outgoing** station. Cards are selected from a seeded shuffle; the same run seed and round give the same offers for the same installed ranks. An upgrade takes effect for that station's next deployment. Clearing a round also repairs 8 integrity, up to 100. No combat advances during the draft.
@@ -29,12 +35,18 @@ Maxed upgrades normally leave the draft pool. If fewer than three distinct cards
 
 Kill values are 100 / 140 / 350 before difficulty and chain multipliers. Every five rapid kills increase the multiplier by 0.25, up to 2×. Chains expire after 130 simulation ticks and reset on a breach. Clearing a wave also grants `round × 200` points.
 
-Best scores are stored separately for Cadet, Night watch and Blackout. Sound preferences are also stored locally. Blocked storage never prevents play. A refresh starts a fresh run; active runs are not saved. Audio-device failures suppress sound for the session without rewriting the saved music preference. A later user gesture retries audio.
+Best scores are stored separately for Cadet, Night watch and Blackout. Sound and fit/page display preferences are also stored locally. Blocked storage never prevents play. A refresh starts a fresh run; active runs are not saved. Audio-device failures suppress sound for the session without rewriting the saved music preference. A later user gesture retries audio.
+
+## Display and sound
+
+The header's **DISPLAY** selector offers **Fit window** (default), **Fullscreen** and **Windowed page**. Fit window contains the complete battlefield and primary controls within the screen. Native fullscreen uses the same layout. Exiting fullscreen restores your previous windowed choice; a denied request falls back to Fit window. Every change pauses combat and clears held inputs. Short-screen menus scroll internally. The field manual's fullscreen shortcut uses the same controller.
+
+Each station has its own procedural soundtrack. The field manual lets you select and download any of the three complete 32-second WAVs. Music and FX toggle independently. Weapon reports and impacts are positioned across the stereo field and attenuated with distance; headphones make the difference clearer.
 
 ## Input and accessibility
 
 Keyboard aiming works without a mouse. Upgrade cards are ordinary keyboard-accessible buttons and support 1–3. Gameplay Space takes precedence even after clicking a sound or weapon button. Native button activation remains available in menus. On touch screens the aiming finger and fire-button finger are tracked independently.
 
-Hidden tabs, lost focus and history restoration pause active combat and clear held input. Resume is explicit. Reduced-motion preference disables camera shake. High-contrast HUD labels, visible focus outlines and a field manual complement the canvas; the combat scene itself is visual and is not a screen-reader equivalent.
+Hidden tabs, lost focus and history restoration pause active combat and clear held input. Resume is explicit. Reduced-motion preference suppresses muzzle flashes, impact lighting pulses and gun recoil. The camera stays fixed so pointer aiming remains aligned. High-contrast HUD labels, visible focus outlines and a field manual complement the canvas; the combat scene itself is visual and is not a screen-reader equivalent.
 
 Gamepad support is for browsers reporting the standard mapping. The software path is implemented; physical controller and mobile-device ergonomics still need device testing.

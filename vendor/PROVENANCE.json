@@ -1,6 +1,6 @@
 {
   "repository": "QSOLKCB/VANILLAJS",
-  "commit": "987c8d9be0af418307ea7cda05cbf56b5f130c71",
+  "commit": "3c35784636288bafe4923537463f853b6bcf0cb4",
   "license": "Apache-2.0",
   "modified": false,
   "files": [
@@ -8,6 +8,11 @@
       "path": "vendor/vanillajs/modules/time/index.js",
       "source": "modules/time/index.js",
       "gitBlob": "60c1532aaaac36beceb3e81f1a935c59478976b2"
+    },
+    {
+      "path": "vendor/vanillajs/modules/math/index.js",
+      "source": "modules/math/index.js",
+      "gitBlob": "45e5fc4d6c6daa472a89fa59c80e6fd70b2c1455"
     },
     {
       "path": "vendor/vanillajs/modules/audio2d/index.js",
@@ -25,9 +30,14 @@
       "gitBlob": "b1f15bd92d38fde942d55460fbe7374dc7780dc0"
     },
     {
-      "path": "vendor/vanillajs/modules/math/index.js",
-      "source": "modules/math/index.js",
-      "gitBlob": "45e5fc4d6c6daa472a89fa59c80e6fd70b2c1455"
+      "path": "vendor/vanillajs/modules/ballistics/index.js",
+      "source": "modules/ballistics/index.js",
+      "gitBlob": "52a091e8c2bc3858c4c0f7a0d722dc673b33cdc6"
+    },
+    {
+      "path": "vendor/vanillajs/modules/collision/index.js",
+      "source": "modules/collision/index.js",
+      "gitBlob": "60975e1e1d5914f0610de2e3ed3cbb241ce7f571"
     },
     {
       "path": "vendor/vanillajs/LICENSE",
@@ -37,7 +47,7 @@
     {
       "path": "vendor/vanillajs/NOTICE",
       "source": "NOTICE",
-      "gitBlob": "e3a3a4b2994a3c257c5570b16733d18d6cec0d22"
+      "gitBlob": "4642f54c1b518852eec6378895ea4958eb2c1c7a"
     }
   ]
 }
