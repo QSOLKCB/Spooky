@@ -10,16 +10,16 @@ test('original 32-second score is deterministic, non-silent and wraps at exact t
   assert.notEqual(hash(a.renderPhrase(0)),hash(a.renderPhrase(2)));
 });
 test('every station has distinct deterministic sound effects and valid WAV output',()=>{
-  const hashes=new Set();for(const type of ['gatling','bofors','howitzer','battery','m2']){const sound=makeEffect(type),wav=sound.wav();hashes.add(hash(wav));assert.equal(Buffer.from(wav.subarray(0,4)).toString(),'RIFF');assert.equal(wav.length,44+sound.frames*2);assert.equal(hash(wav),hash(makeEffect(type).wav()));}assert.equal(hashes.size,5);
+  const hashes=new Set();for(const type of ['gatling','bofors','howitzer','battery','m2','rifle','bolt']){const sound=makeEffect(type),wav=sound.wav();hashes.add(hash(wav));assert.equal(Buffer.from(wav.subarray(0,4)).toString(),'RIFF');assert.equal(wav.length,44+sound.frames*2);assert.equal(hash(wav),hash(makeEffect(type).wav()));}assert.equal(hashes.size,7);
 });
 test('missing audio device is contained and never escapes into combat',async()=>{
   const before=globalThis.AudioContext;try{globalThis.AudioContext=class{constructor(){throw new Error('device absent');}};let errors=0;const player=createAudio(()=>errors++);await player.unlock();player.event({type:'fire',weapon:'m2'},true);player.sync(200,true);player.stop();assert.equal(errors,1);}finally{globalThis.AudioContext=before;}
 });
-test('all three complete station arrangements export distinct repeatable loops',()=>{
-  const hashes=new Set();for(const station of ['gunship','artillery','infantry']){
+test('all four complete station arrangements export distinct repeatable loops',()=>{
+  const hashes=new Set();for(const station of ['gunship','artillery','infantry','sniper']){
     const a=makeScore(station),b=makeScore(station);assert.equal(a.frames,1536000);assert.equal(a.loopTicks,1920);
     const wav=a.wav();assert.equal(wav.length,44+a.frames*2);assert.equal(hash(wav),hash(b.wav()));hashes.add(hash(wav));
-  }assert.equal(hashes.size,3);assert.throws(()=>makeScore('__proto__'));
+  }assert.equal(hashes.size,4);assert.throws(()=>makeScore('__proto__'));
   for(const type of ['m2','impact','battery']){const variants=new Set();for(let i=0;i<4;i++){variants.add(hash(makeEffect(type,i).wav()));assert.equal(hash(makeEffect(type,i).wav()),hash(makeEffect(type,i+4).wav()));}assert.equal(variants.size,4);}
 });
 class AudioMock{
@@ -76,7 +76,7 @@ test('105 mm firing and impact have longer distinct reports, selected by real co
 });
 
 test('military march has four bounded lanes, a 120 BPM drum cadence and a phrase-ending snare roll',()=>{
-  for(const station of ['gunship','artillery','infantry']){
+  for(const station of ['gunship','artillery','infantry','sniper']){
     const score=makeScore(station);assert.equal(score.phraseCount,8);
     for(let phrase=0;phrase<8;phrase++){
       const {frames,events}=score.score(phrase);assert.equal(frames,192000);assert.ok(events.length<=128);
@@ -86,13 +86,13 @@ test('military march has four bounded lanes, a 120 BPM drum cadence and a phrase
         assert.ok(events.some(e=>e.channel===1&&e.sample===beat*24000&&e.wave==='noise'),'snare cadence');
       }
       const roll=events.filter(e=>e.channel===1&&e.sample>=168000);assert.equal(roll.length,8);
-      assert.ok(events.some(e=>e.channel===2&&['square','saw'].includes(e.wave)),'brass lead');
+      assert.ok(events.some(e=>e.channel===2&&(station==='sniper'?['triangle']:['square','saw']).includes(e.wave)),'brass lead');
       assert.ok(events.every(e=>e.sample+e.duration<=frames));
     }
   }
 });
 test('march PCM is identical across arbitrary phrase chunks and resumes at its exact tick offset',async()=>{
-  for(const station of ['gunship','artillery','infantry']){
+  for(const station of ['gunship','artillery','infantry','sniper']){
     const score=makeScore(station),start=190731,count=201337,whole=score.renderRange(start,count),chunked=new Int16Array(count);
     for(let offset=0;offset<count;){const size=Math.min([137,4096,17001][offset%3],count-offset);chunked.set(score.renderRange(start+offset,size),offset);offset+=size;}
     assert.deepEqual(chunked,whole);assert.deepEqual(score.renderRange(241*800,1600),score.renderPhrase(1).subarray(800,2400));

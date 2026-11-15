@@ -1,0 +1,76 @@
+✔ original 32-second score is deterministic, non-silent and wraps at exact ticks (232.001664ms)
+✔ every station has distinct deterministic sound effects and valid WAV output (59.683516ms)
+✔ missing audio device is contained and never escapes into combat (0.927654ms)
+✔ all four complete station arrangements export distinct repeatable loops (4167.248432ms)
+✔ spatial effects preserve tick spacing, remain bounded and survive music being disabled (87.721668ms)
+✔ partial voice failures release allocated nodes and a new gesture recovers audio (2.528934ms)
+✔ 105 mm firing and impact have longer distinct reports, selected by real combat events (135.481262ms)
+✔ military march has four bounded lanes, a 120 BPM drum cadence and a phrase-ending snare roll (5.585291ms)
+✔ march PCM is identical across arbitrary phrase chunks and resumes at its exact tick offset (472.458092ms)
+✔ VANILLAJS shell integration follows gravity and reaches the selected impact on its flight tick (7.385576ms)
+✔ surviving targets receive radial impulse and heavy bodies resist displacement (9.574522ms)
+✔ crowds navigate building footprints without tunnelling or becoming stuck (90.060827ms)
+✔ fuel chains detonate each drum once and do not award extra kills or shot accuracy (1.936532ms)
+✔ head picking yields a single-target critical hit for the direct-fire weapons (1.302609ms)
+✔ seeded debris bounces, settles and expires while presentation storage stays bounded (7.687261ms)
+✔ 40 mm delivers the former heavy hit while 105 mm damages a much wider group (2.228109ms)
+✔ blast outlines follow actual world-space coverage and remain finite at maximum rank (12.256676ms)
+✔ seed and difficulty validation rejects malformed public construction (4.996584ms)
+✔ seeded input streams reproduce full state including choices (809.270838ms)
+✖ a real twelve-round run rotates stations, escalates hordes and retains upgrades (593.965927ms)
+✔ every weapon hits real targets and heavy blasts damage groups once (5.364917ms)
+✔ artillery has a real delay and leading a moving target matters (1.275218ms)
+✔ magazines, manual reload and automatic empty reload preserve cadence (1.145684ms)
+✔ switching gunship weapons cannot refill or cancel their reload/cooldown (0.376738ms)
+✔ M2 overheats, refuses shots during recovery and becomes usable again (5.509789ms)
+✔ cooling, capacity, radius, damage and rate upgrades change actual weapon stats (0.592694ms)
+✔ a breach damages the outpost exactly once; loss freezes every field (0.599437ms)
+✔ passive play really loses; several seeds expose all enemy classes (2473.465034ms)
+✔ upgrade choices are transactional and capped upgrades become field repairs (0.545856ms)
+✔ terminal wave waits for in-flight shells; offers remain three distinct IDs at rank limits (0.765089ms)
+✔ nonfinite aim is ignored, finite aim clamps, and untrusted indices are inert (0.700126ms)
+✔ ground projection inverts across all stations and the whole play area (0.451839ms)
+✔ clicking visible heads and torsos targets the body rather than distant terrain (1.486204ms)
+✔ fixed clock produces identical combat at 30/60/120/144 Hz with bounded catch-up (80.757518ms)
+✔ seed sweep maintains finite state and bounded effects during actual combat (1415.181238ms)
+✔ fourth station enters after M2 and returns to gunship with independent upgrades (5.218292ms)
+✔ copied ray slabs handle parallel axes, inside origins, misses and distance limits (0.645895ms)
+✔ rendered voxel centers produce correct hit regions at all scales and animated poses (7.604889ms)
+✔ settled rifle headshots, body hits and off-body misses have no blast splash (6.413629ms)
+✔ collaterals trace front to back once, attenuate damage and stop at the penetration limit (11.235836ms)
+✔ nearest cover stops every later target, including exact ties (0.89392ms)
+✔ one trigger edge fires one round; bolt blocks early shots and accepts only a short late buffer (5.864567ms)
+✔ scope settles in nine ticks; release, pause and reload cancel buffered fire (2.234221ms)
+✔ manual and empty reload never shoot on completion without a new edge (3.899312ms)
+✔ rifle upgrade cards modify useful mechanics and repeated streams retain full state (65.658439ms)
+ℹ tests 45
+ℹ suites 0
+ℹ pass 44
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5662.831345
+
+✖ failing tests:
+
+test at tests/sim.test.js:34:1
+✖ a real twelve-round run rotates stations, escalates hordes and retains upgrades (593.965927ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  12 !== 13
+
+      at TestContext.<anonymous> (file:///workspace/scratch/db4b0de70b71/Spooky/tests/sim.test.js:47:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 12,
+    expected: 13,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,10 +1,10 @@
-![SPOOKY — Last Light. An original AC-47 Spooky tribute banner.](docs/assets/spooky-banner.webp)
+![SPOOKY — Last Light. An original AC-47 Spooky tribute banner.](docs/assets/spooky-banner-four-stations.webp)
 
 # SPOOKY — Last Light
 
-**Three stations. One last line.**
+**Four stations. One last line.**
 
-An original, offline-first horde defence game built with [VANILLAJS](https://github.com/QSOLKCB/VANILLAJS). Command an AC-130 gunship, move to the artillery battery, then take the M2 at the wire. The next wave is bigger. Your upgrades stay with you.
+An original, offline-first horde defence game built with [VANILLAJS](https://github.com/QSOLKCB/VANILLAJS). Command an AC-130 gunship, move to the artillery battery, take the M2 at the wire, then man a fixed 20 mm bolt-action sniper rifle. The next wave is bigger. Your upgrades stay with you.
 
 [Play on GitHub Pages](https://qsolkcb.github.io/Spooky/) · [Field manual](docs/GAMEPLAY.md) · [Engineering and provenance](docs/ARCHITECTURE.md)
 
@@ -18,13 +18,24 @@ Read about the [AC-47 Spooky](https://en.wikipedia.org/wiki/Douglas_AC-47_Spooky
 
 | Round | Station | Your job |
 | --- | --- | --- |
-| 1, 4, 7… | AC-130 / Spectre orbit | Thermal overhead view. Switch between a 25 mm Gatling, 40 mm cannon and 105 mm howitzer. |
-| 2, 5, 8… | Artillery / Thunder battery | Place delayed high-explosive impacts ahead of moving groups. |
-| 3, 6, 9… | Infantry / Last line | Work the M2 .50 cal from ground level. Manage the belt and barrel heat. |
+| 1, 5, 9… | AC-130 / Spectre orbit | Thermal overhead view. Switch between a 25 mm Gatling, 40 mm cannon and 105 mm howitzer. |
+| 2, 6, 10… | Artillery / Thunder battery | Place delayed high-explosive impacts ahead of moving groups. |
+| 3, 7, 11… | Infantry / Last line | Work the M2 .50 cal from ground level. Manage the belt and barrel heat. |
+| 4, 8, 12… | Sniper / Long watch | Scope in with the 20 mm rifle. Pick heads, time the bolt and line up collaterals. |
 
 Clear a round and choose **one of three upgrades** for the station you just used. Damage, blast radius, firing/reload speed, ammunition capacity and cooling upgrades persist across rotations. Field repairs restore the shared outpost instead. Each gunship upgrade applies to all three aircraft weapons.
 
 The outpost automatically recovers 8 integrity between rounds; the incoming station is resupplied. Runners enter from round 2 and armoured bulwarks from round 3. There is no final wave: survive until the perimeter falls.
+
+## Long watch — the fourth station
+
+Adapted from [QUICKSCOPER](https://github.com/QSOLKCB/QUICKSCOPER), the **fixed 20 mm anti-materiel rifle** follows the M2. A 3.2× scope settles in 0.15 seconds; one click fires one round and cycles the bolt. Heads take 2.5× damage. Quickscope kills earn bonus points; you can also wait for several targets to line up: a round can penetrate three enemies, retaining 70% damage at each hit. Buildings stop the shot.
+
+The rifle has its own upgrade ranks: damage, bolt/reload speed, magazine capacity, extra penetrations and better retained damage. Its sight, trigger buffer, recoil and chambering sounds follow simulation ticks. Hip fire uses seeded dispersion. A separate SCOPE button preserves independent aiming and firing fingers on touchscreens.
+
+![Long watch — a controlled scoped horde fixture](docs/evidence/sniper-station/sniper-scope.jpg)
+
+[Controls, source adaptation and validation](docs/SNIPER_STATION.md).
 
 ## Make the heavy gun count
 
@@ -40,11 +51,12 @@ Damage outlines now project the actual world-space footprint. The centre crossha
 
 ## Last Light March
 
-An original **120 BPM military march**, composed and synthesised with VANILLAJS: marching bass drums, accented field snares, turnaround rolls, brass-style calls and low horn harmonies. Its 16 bars form a 32-second loop, with three station arrangements:
+An original **120 BPM military march**, composed and synthesised with VANILLAJS: marching bass drums, accented field snares, turnaround rolls, brass-style calls and low horn harmonies. Its 16 bars form a 32-second loop, with four station arrangements:
 
 - **Spectre march:** low-register gunship brass and restrained ghost strokes.
 - **Thunder march:** deeper field drums and a full brass lead for artillery.
 - **Last line march:** brighter infantry calls and busier snare cadences.
+- **Long watch march:** a quieter, high-register fife-like lead over the field cadence.
 
 [Listen to an eight-second infantry preview (WAV)](docs/assets/last-light-march-preview.wav). In the game, open the field manual, select an arrangement and **DOWNLOAD MARCH · WAV** to export the complete track. Music and FX have independent switches.
 
@@ -52,12 +64,12 @@ The score uses four bounded integer-PCM lanes and fixed note/noise seeds. Identi
 
 ## Included
 
-- Three pixel/voxel views with articulated characters, armoured bulwarks, shaded buildings, trees, trenches, searchlights and rotating lighting palettes.
+- Four pixel/voxel views with articulated characters, armoured bulwarks, shaded buildings, trees, trenches, searchlights and rotating lighting palettes.
 - Gravity-driven shells and bouncing debris, blast knockback, persistent craters, fuel-drum chains, headshot bonuses, tracers and weapon recoil.
 - Enemies steer around solid buildings and separate from nearby horde members.
 - Increasing hordes, three enemy classes, three difficulty settings, chain bonuses and separate local best scores per difficulty.
 - Six upgrade choices, deterministic three-card drafts, persistent station builds and independent gunship ammunition/reload state.
-- Three deterministic arrangements of Last Light March, layered weapon reports, stereo positioning, bounded voices and selectable full-loop WAV export.
+- Four deterministic arrangements of Last Light March, layered weapon reports, stereo positioning, bounded voices and selectable full-loop WAV export.
 - **Fit window, Fullscreen and Windowed page**, brought across from [Outruin PR #4](https://github.com/QSOLKCB/Outruin/pull/4). The full battlefield, HUD and touch controls fit within the available window.
 - Mouse, keyboard, touch and standard gamepad controls. Automatic pause on focus or display changes and explicit resume.
 - Offline caching after the first complete visit. No account, backend, CDN, runtime package install or downloaded art.
@@ -70,12 +82,14 @@ The score uses four bounded integer-PCM lanes and fixed note/noise seeds. Identi
 | Input | Action |
 | --- | --- |
 | Pointer / WASD / arrows | Aim |
-| Hold left mouse / Space | Fire |
+| Hold left mouse / Space | Fire; sniper requires a fresh click/press per round |
+| Right mouse / Shift / left trigger | Hold to scope with the rifle |
+| Q / SCOPE button | Toggle rifle scope |
 | 1 / 2 / 3 | Switch gunship weapon; select an upgrade when the draft is open |
 | R | Reload |
 | P / Esc | Pause or resume |
-| Touch | Drag the battlefield to aim; hold the separate FIRE button |
-| Standard gamepad | Left stick aims; right trigger or A fires; X reloads; shoulders switch weapon; Start pauses |
+| Touch | Drag the battlefield to aim; hold the separate FIRE button; tap once per rifle shot |
+| Standard gamepad | Left stick aims; right trigger or A fires; left trigger scopes; X reloads; shoulders switch weapon; Start pauses |
 
 Use the mouse on the creature's visible body, or aim ahead on the ground to place a blast. Head hits with the 25 mm or M2 deal 1.65× damage to the selected creature. Orange fuel drums can clear a group in a chain reaction. There is no pointer lock. Leaving the tab clears held inputs and pauses the run.
 
@@ -101,7 +115,7 @@ Serve `dist/`. The build uses only Node's standard library and copies an explici
 
 ## Verify
 
-The gunship/march update passes **35 unit tests and 17 packaged Chromium scenarios**. [Current validation and source-bound receipts](docs/GUNSHIP_BALANCE.md#validation).
+The fourth-station update passes **48 pure tests and 20 packaged Chromium scenarios**, covering rifle geometry, scope/trigger timing, collaterals and four-station progression. [Current validation and source-bound receipts](docs/SNIPER_STATION.md#validation).
 
 ```sh
 node scripts/check.mjs
@@ -109,18 +123,18 @@ node --test tests/*.test.js
 node scripts/build.mjs
 ```
 
-Browser verification uses Playwright as a **development-only** tool. CI installs Playwright 1.56.0 in a temporary directory, plays all three stations through real DOM input handlers, and uploads screenshots plus `test-results/browser.json`, including failures. If Playwright is already installed:
+Browser verification uses Playwright as a **development-only** tool. CI installs Playwright 1.56.0 in a temporary directory, plays all four stations through real DOM input handlers, and uploads screenshots plus `test-results/browser.json`, including failures. If Playwright is already installed:
 
 ```sh
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright node tests/browser.mjs
 ```
 
-`CHROMIUM_PATH` optionally selects an installed Chromium binary. Tests cover complete rounds, collisions, ballistics, fuel chains, headshots, draft choices, reload and heat, pause/focus cancellation, projected body picking, keyboard toolbar focus, mobile multitouch, native fullscreen, denied fullscreen, short-screen layout, three WAV exports, audio failure, restart and offline operation under `/Spooky/`. See the [upgrade validation record](docs/VALIDATION.md) for the executed scope.
+`CHROMIUM_PATH` optionally selects an installed Chromium binary. Tests cover complete rounds, collisions, ballistics, fuel chains, headshots, draft choices, reload and heat, pause/focus cancellation, projected body picking, keyboard toolbar focus, mobile multitouch, native fullscreen, denied fullscreen, short-screen layout, four WAV exports, audio failure, restart and offline operation under `/Spooky/`. See the [upgrade validation record](docs/VALIDATION.md) for the executed scope.
 
 CI runs on every PR and main-branch push. A successful main run publishes its verified `dist/` artifact to Pages; select **GitHub Actions** as the Pages source in repository settings if the repository still uses branch-based Pages. Implementation is delivered through a PR; merging and tagging remain owner actions.
 
 ## Build your own night
 
-Game data lives in `js/content.js`; combat and wave rules in `js/sim.js`; shared scenery in `js/world.js`; motion in `js/physics.js`; the three views in `js/render.js`; soundtrack and effects in `js/audio.js`, including the editable `MARCH_THEME` note sequence. These are ordinary inspectable ES modules. See [the architecture notes](docs/ARCHITECTURE.md) before changing simulation or vendor files. This release supports source edits, not an in-game mod-pack editor.
+Game data lives in `js/content.js`; combat and wave rules in `js/sim.js`; shared scenery in `js/world.js`; motion in `js/physics.js`; rifle geometry and scope rules in `js/sniper.js`; the four views in `js/render.js`; soundtrack and effects in `js/audio.js`, including the editable `MARCH_THEME` note sequence. These are ordinary inspectable ES modules. See [the architecture notes](docs/ARCHITECTURE.md) before changing simulation or vendor files. This release supports source edits, not an in-game mod-pack editor.
 
 Apache-2.0. Copyright 2026 Trent Slade / QSOL-IMC and contributors. Upstream licences and notices are preserved. An original arcade game, with no Call of Duty assets, music or code; weapon names are fictional gameplay context, not real weapon training.

@@ -1,0 +1,20 @@
+PASS: landscape tablets show touch controls and preserve independent aim/fire/reload input
+PASS: Fit window keeps the complete battlefield, HUD and controls visible on short screens
+PASS: native fullscreen enters and exits through one controller, pauses combat and clears held fire
+PASS: fullscreen denial falls back to Fit window; window preference persists and short menus scroll
+PASS: all station scenes render gravity debris, fuel chains and distinct enemy silhouettes without mutating combat
+PASS: 105 mm has a much larger visible blast and finite effects at full upgrades
+PASS: sniper scope magnifies actual voxel hitboxes and renders deterministic headshot/collateral feedback
+PASS: desktop briefing and manual are usable
+PASS: field manual exports the selected complete station soundtrack
+PASS: Space still fires after toolbar clicks; weapon and reload controls work
+PASS: pause and lost focus freeze combat and cancel held fire
+PASS: gunship: complete a wave through actual input handlers and choose an upgrade
+PASS: artillery: complete a wave through actual input handlers and choose an upgrade
+PASS: infantry: complete a wave through actual input handlers and choose an upgrade
+PASS: rifle scope, mouse chords, one-shot trigger, touch, gamepad and cancellation work in the live fourth station
+PASS: sniper: complete a wave through actual input handlers and choose an upgrade
+PASS: loss, personal best, retry and restart work without a refresh
+PASS: offline cache serves a complete deployment under a repository subpath
+PASS: 320 px and 390 px layouts fit and touch firing survives aim-pointer release
+PASS: unavailable audio leaves gameplay and saved preferences intact

@@ -28,6 +28,16 @@
 - [x] Original deterministic Last Light March with three arrangements and full WAV export.
 - [x] AC-47 namesake story, original README banner and soundtrack preview.
 
+## Long watch — fourth station
+
+- [x] AC-130 → artillery → M2 → fixed 20 mm sniper rifle rotation.
+- [x] QUICKSCOPER-derived scope settle, one-click trigger and short bolt buffer.
+- [x] Shared rendered head/body hitboxes and wall-blocked, attenuated collaterals.
+- [x] Quickscope/headshot bonuses, collateral feedback and dedicated station upgrades.
+- [x] Mouse, keyboard, touch and standard-gamepad scoping; focus/disconnect cancellation.
+- [x] Original Canvas rifle/bolt/scope visuals, rifle report, chambering sound and Long watch march.
+- [x] Four-station README banner, field manual and source adaptation record.
+
 ## Possible next operations — not implemented
 
 - Data-only mod packs and an in-game operation/upgrade editor.

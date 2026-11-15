@@ -22,3 +22,11 @@ Last Light March is an original composition and deterministic procedural arrange
 The AC-47 tribute README banner is newly generated concept artwork for this project;
 its prompt and provenance are recorded in docs/BANNER.md. No historical photograph,
 commercial game art or existing military-march recording is incorporated.
+
+The fourth station adapts QUICKSCOPER scope/trigger timing and wall-blocked
+ray/box collateral tracing from QSOLKCB/QUICKSCOPER, commit
+8da5569b1ee7565d9ae5fb0588847d262c896648 (Apache-2.0).
+QUICKSCOPER — QSOL-IMC / Trent Slade and contributors.
+Modified code is in js/sniper.js, js/sim.js and js/render.js; original source
+identities and adaptation notes are recorded in vendor/QUICKSCOPER.json.
+The upstream licence is retained in vendor/quickscoper/LICENSE.
