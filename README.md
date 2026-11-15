@@ -25,11 +25,13 @@ Read about the [AC-47 Spooky](https://en.wikipedia.org/wiki/Douglas_AC-47_Spooky
 
 Clear a round and choose **one of three upgrades** for the station you just used. Damage, blast radius, firing/reload speed, ammunition capacity and cooling upgrades persist across rotations. Field repairs restore the shared outpost instead. Each gunship upgrade applies to all three aircraft weapons.
 
+**Cadet now has smaller, slower waves**: 11 / 14 / 17 / 20 enemies in the first rotation. The first sniper watch admits at most four attackers at once, giving you room to aim and reload. Later waves still grow. [Cadet balance and pointer-alignment checks](docs/CADET_AND_AIM.md).
+
 The outpost automatically recovers 8 integrity between rounds; the incoming station is resupplied. Runners enter from round 2 and armoured bulwarks from round 3. There is no final wave: survive until the perimeter falls.
 
 ## Long watch — the fourth station
 
-Adapted from [QUICKSCOPER](https://github.com/QSOLKCB/QUICKSCOPER), the **fixed 20 mm anti-materiel rifle** follows the M2. A 3.2× scope settles in 0.15 seconds; one click fires one round and cycles the bolt. Heads take 2.5× damage. Quickscope kills earn bonus points; you can also wait for several targets to line up: a round can penetrate three enemies, retaining 70% damage at each hit. Buildings stop the shot.
+Adapted from [QUICKSCOPER](https://github.com/QSOLKCB/QUICKSCOPER), the **fixed 20 mm anti-materiel rifle** follows the M2. A 3.2× scope follows your pointer and settles in 0.15 seconds; one click fires one round and cycles the bolt. Heads take 2.5× damage. Quickscope kills earn bonus points; you can also wait for several targets to line up: a round can penetrate three enemies, retaining 70% damage at each hit. Buildings stop the shot.
 
 The rifle has its own upgrade ranks: damage, bolt/reload speed, magazine capacity, extra penetrations and better retained damage. Its sight, trigger buffer, recoil and chambering sounds follow simulation ticks. Hip fire uses seeded dispersion. A separate SCOPE button preserves independent aiming and firing fingers on touchscreens.
 
@@ -115,7 +117,7 @@ Serve `dist/`. The build uses only Node's standard library and copies an explici
 
 ## Verify
 
-The fourth-station update passes **48 pure tests and 20 packaged Chromium scenarios**, covering rifle geometry, scope/trigger timing, collaterals and four-station progression. [Current validation and source-bound receipts](docs/SNIPER_STATION.md#validation).
+The Cadet and aiming fix passes **51 pure tests and 21 packaged Chromium scenarios**, including a deliberately paced Cadet run and measured native-pointer alignment through zoom, bolt cycling, reload and display changes. [Current validation and source-bound receipts](docs/CADET_AND_AIM.md).
 
 ```sh
 node scripts/check.mjs

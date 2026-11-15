@@ -4,7 +4,7 @@ The rotation is now **AC-130 → artillery → M2 → sniper**, repeating on rou
 
 ## Firing and scope
 
-- Hold right mouse, either Shift key or standard-gamepad left trigger to scope. Q and the SCOPE button toggle it. Magnification is 3.2×; mouse/touch/stick aim is scaled by the same zoom.
+- Hold right mouse, either Shift key or standard-gamepad left trigger to scope. Q and the SCOPE button toggle it. Magnification is 3.2× around the aim point; the scope and reticle follow absolute pointer coordinates. Bolt cycling and reload do not switch input mapping.
 - Click left mouse, tap FIRE or press Space/right trigger/A once per round. Holding the trigger cannot fire again. The bolt cycles automatically in 54 ticks (0.9 seconds); reload takes 132 ticks (2.2 seconds), before upgrades.
 - A settled scope is accurate after nine ticks (0.15 seconds). A scoped hit within ticks 9–33 records a quickscope; quickscope kills add 100 points before the existing difficulty/chain multiplier. Hip fire has seeded dispersion.
 - Head hits deal 2.5× damage; torso hits deal 200 base damage; limb/leg hits deal 65%. A headshot kill adds 50 points before difficulty/chain multiplication. Rendered voxel boxes and traced hit regions share the same animated geometry.
@@ -32,7 +32,9 @@ Source: [QSOLKCB/QUICKSCOPER](https://github.com/QSOLKCB/QUICKSCOPER/tree/8da556
 
 ## Validation
 
-**48 pure tests and 20 packaged Chromium scenarios passed.** [Source hashes, receipts, failed attempts and screenshots](evidence/sniper-station/) bind the local evidence to the tested files, based on Spooky main `6330ff054b4ee15225e05ae7c6ef06a6204eb2c6`.
+The subsequent [Cadet and pointer-alignment fix](CADET_AND_AIM.md) has the current validation results.
+
+**The original station update passed 48 pure tests and 20 packaged Chromium scenarios.** [Source hashes, receipts, failed attempts and screenshots](evidence/sniper-station/) bind the local evidence to the tested files, based on Spooky main `6330ff054b4ee15225e05ae7c6ef06a6204eb2c6`.
 
 Pure coverage includes head/body/miss geometry, animated poses at different distances, one region per target, stable collateral order, attenuation/caps, cover ties and intervening walls, trigger edges, short buffering, reload and cancellation, timing at 30/60/120/144 Hz, seeded repetition, a twelve-round Cadet run with retained upgrades, four distinct complete march WAVs and bounded audio effects.
 
@@ -40,4 +42,4 @@ The packaged browser suite drives all four rounds through real input handlers an
 
 Executed locally with Node 24.22.1, Playwright 1.62.1 and Chromium 141.0.7390.37 (headless shell). Device inputs are emulated; physical controller ergonomics, phone performance, Firefox/Safari and audible mix balance were not tested. No cross-engine bit-exactness or unlimited-wave balance claim is made.
 
-The initial twelve-round automated Night-watch pilot exhausted integrity on round 12. The rotation/persistence test now uses Cadet; the live browser cycle uses Night watch. An expanded browser assertion initially inspected the throttled HUD before it had displayed the settled scope; its wait now includes a HUD refresh. Both failures are retained alongside the passing receipts. Final review also kept scoped aim continuous through bolt cycling, confined bolt FX to their own station and cancelled pending shots on pointer cancellation.
+The initial twelve-round automated Night-watch pilot exhausted integrity on round 12. That rotation/persistence test used Cadet; the original live browser cycle used Night watch. An expanded browser assertion initially inspected the throttled HUD before it had displayed the settled scope; its wait now includes a HUD refresh. Both failures are retained alongside the passing receipts. Final review also kept scoped aim continuous through bolt cycling, confined bolt FX to their own station and cancelled pending shots on pointer cancellation.

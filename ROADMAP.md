@@ -38,6 +38,14 @@
 - [x] Original Canvas rifle/bolt/scope visuals, rifle report, chambering sound and Long watch march.
 - [x] Four-station README banner, field manual and source adaptation record.
 
+## Cadet and pointer correction
+
+- [x] Smaller, progressively growing Cadet waves and slower rifle arrivals.
+- [x] Four active attackers on the first Cadet sniper watch, gradually rising to eight.
+- [x] Absolute mouse/touch aiming with the scope magnifying around the pointer.
+- [x] Measured alignment through scoping, bolt, reload, letterboxing and fullscreen.
+- [x] Deliberate-play checks with missed shots and magazine changes.
+
 ## Possible next operations — not implemented
 
 - Data-only mod packs and an in-game operation/upgrade editor.

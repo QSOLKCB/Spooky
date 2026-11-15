@@ -36,9 +36,9 @@ export const ENEMIES = {
   brute: {name:'Bulwark', hp:150, speed:0.031, damage:14, points:350, size:1.7}
 };
 export const DIFFICULTIES = {
-  cadet:{name:'Cadet', pressure:0.8, damage:0.65, points:0.8},
-  night:{name:'Night watch', pressure:1, damage:1, points:1},
-  blackout:{name:'Blackout', pressure:1.2, damage:1.2, points:1.3}
+  cadet:{name:'Cadet', pressure:0.8, damage:0.65, points:0.8, wave:.45, spawn:1.35, sniperSpawn:2},
+  night:{name:'Night watch', pressure:1, damage:1, points:1, wave:1, spawn:1, sniperSpawn:1},
+  blackout:{name:'Blackout', pressure:1.2, damage:1.2, points:1.3, wave:1, spawn:1, sniperSpawn:1}
 };
 export const UPGRADES = [
   {id:'damage', icon:'✦', name:'Overpressure', description:'+25% weapon damage per rank.', max:8, kind:'FIREPOWER'},

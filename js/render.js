@@ -293,10 +293,10 @@ export function createRenderer(canvas){
   function draw(s,{time=s.tick/60,muted=false,reducedMotion=false,cursor=null}={}){
     const key=s.station+':'+sectorForRound(s.round).name;
     if(key!==sceneKey){const live=ctx;ctx=sceneContext;terrain(s);ctx=live;sceneKey=key;}
-    const sniper=s.station==='sniper',ads=sniper?s.sniper.ads:0,t=ads*ads*(3-2*ads),zoom=sniper?scopeZoom(s):1;
-    const anchor=cursor||{x:s.sniper.x,y:s.sniper.y},reticlePoint=sniper?{x:anchor.x+(576-anchor.x)*t,y:anchor.y+(360-anchor.y)*t}:cursor;
+    const sniper=s.station==='sniper',zoom=sniper?scopeZoom(s):1;
+    const reticlePoint=cursor||(sniper?{x:s.sniper.x,y:s.sniper.y}:project(s.station,s.aim.x,s.aim.z));
     rect(0,0,WIDTH,HEIGHT,'#101c19');ctx.save();
-    if(sniper){ctx.translate(reticlePoint.x-anchor.x*zoom,reticlePoint.y-anchor.y*zoom);ctx.scale(zoom,zoom);}
+    if(sniper){ctx.translate(reticlePoint.x*(1-zoom),reticlePoint.y*(1-zoom));ctx.scale(zoom,zoom);}
     ctx.drawImage(scene,0,0);groundEffects(s);
     const actors=[...BUILDINGS.map(b=>({z:b.z+b.depth/2,draw:()=>building(s,b)})),...s.fuel.map(b=>({z:b.z,draw:()=>fuel(s,b)})),...s.enemies.map(e=>({z:e.z,draw:()=>enemy(s,e)}))];
     actors.sort((a,b)=>a.z-b.z).forEach(a=>a.draw());effects(s,reducedMotion);

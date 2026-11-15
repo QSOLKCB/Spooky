@@ -30,6 +30,20 @@ function installAnimationClock(){
   window.requestAnimationFrame=fn=>{queue.set(++id,fn);return id;};window.cancelAnimationFrame=id=>queue.delete(id);
   window.__frames=n=>{for(let i=0;i<n;i++){now+=1000/60;const calls=[...queue.values()];queue.clear();calls.forEach(fn=>fn(now));}};
 }
+// Observe draw calls and native pointer events without changing the app or its state.
+function installSightObserver(){
+  window.__sightDraw={};
+  addEventListener('pointermove',e=>{if(e.target.id==='field')window.__nativePointer={x:e.clientX,y:e.clientY};});
+  const proto=CanvasRenderingContext2D.prototype,fill=proto.fillRect,draw=proto.drawImage;
+  proto.fillRect=function(x,y,w,h){
+    if(this.canvas.id==='field'&&this.fillStyle==='#ffd18b'&&w===3&&h===3){const m=this.getTransform();window.__sightDraw.reticle={x:m.a*(x+w/2)+m.e,y:m.d*(y+h/2)+m.f};}
+    return fill.call(this,x,y,w,h);
+  };
+  proto.drawImage=function(...args){
+    if(this.canvas.id==='field'){const m=this.getTransform();window.__sightDraw.scene={a:m.a,d:m.d,e:m.e,f:m.f};}
+    return draw.apply(this,args);
+  };
+}
 try{
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});receipt.browser=browser.version();
   await check('landscape tablets show touch controls and preserve independent aim/fire/reload input',async()=>{
@@ -198,7 +212,7 @@ try{
   });
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
   page.on('pageerror',e=>receipt.errors.push(e.message));
-  await context.addInitScript(installAnimationClock);
+  await context.addInitScript(installAnimationClock);await context.addInitScript(installSightObserver);
   await page.goto(url);await page.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});await frames(page,2);
   await check('desktop briefing and manual are usable',async()=>{
     assert.ok(await page.locator('.touch-controls').isHidden(),'wide mouse-only layout keeps touch controls hidden');
@@ -230,23 +244,21 @@ try{
     await click(page,'#resume');await frames(page,160);const ammo=await page.locator('#ammo').textContent();await frames(page,100);assert.equal(await page.locator('#ammo').textContent(),ammo);
     // BFCache restoration must also leave an explicitly resumable pause.
     await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true})));assert.ok(await page.locator('#pause-panel').isVisible());
-    await click(page,'#quit');await click(page,'#deploy');
+    await click(page,'#quit');await page.locator('#difficulty').selectOption('cadet');await click(page,'#deploy');
   });
   await page.evaluate(async()=>{
-    const sim=await import('./js/sim.js'),view=await import('./js/render.js'),rifle=await import('./js/sniper.js');window.__mirror=sim.create();
+    const sim=await import('./js/sim.js'),view=await import('./js/render.js'),rifle=await import('./js/sniper.js');window.__mirror=sim.create({difficulty:'cadet'});
     window.__playRound=()=>{
       const s=window.__mirror,canvas=document.querySelector('#field'),rect=canvas.getBoundingClientRect();
       const scale=Math.min(rect.width/view.WIDTH,rect.height/view.HEIGHT),ox=rect.left+(rect.width-view.WIDTH*scale)/2,oy=rect.top+(rect.height-view.HEIGHT*scale)/2;
       const dispatchKey=(code,down)=>window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{code,bubbles:true,cancelable:true}));
       if(s.station==='gunship'){sim.selectWeapon(s,2);dispatchKey('Digit3',true);dispatchKey('Digit3',false);}
-      let count=0,mouse={x:576,y:360};
+      let count=0;
       while(s.status==='playing'&&count++<10000){
         const target=s.enemies.reduce((a,b)=>!a||b.z>a.z?b:a,null),stats=sim.weaponStats(s);
         const box=target&&s.station==='sniper'?rifle.hitboxes(target)[0]:null;
         const point=target?view.project(s.station,target.x,target.z+target.speed*stats.flight,box?(box.min[1]+box.max[1])/2:0):view.project(s.station,0,45);
-        const zoom=s.station==='sniper'?rifle.scopeZoom(s):1;
-        mouse=s.station==='sniper'&&count>1?{x:mouse.x+(point.x-s.sniper.x)*zoom,y:mouse.y+(point.y-s.sniper.y)*zoom}:point;
-        canvas.dispatchEvent(new PointerEvent('pointermove',{pointerType:'mouse',clientX:ox+mouse.x*scale,clientY:oy+mouse.y*scale,bubbles:true}));
+        canvas.dispatchEvent(new PointerEvent('pointermove',{pointerType:'mouse',clientX:ox+point.x*scale,clientY:oy+point.y*scale,bubbles:true}));
         const fire=!!target&&(s.station!=='sniper'||!s.sniper.trigger&&s.weapons.rifle.cooldown<=1);
         dispatchKey('ShiftLeft',s.station==='sniper');dispatchKey('Space',fire);const aim=view.aimFromScreen(s,point.x,point.y);
         sim.step(s,{...aim,fire,scope:s.station==='sniper'});window.__frames(1);
@@ -255,6 +267,53 @@ try{
     };
   });
   for(const [round,name] of [[1,'gunship'],[2,'artillery'],[3,'infantry'],[4,'sniper']]){
+    if(round===4)await check('native pointer, drawn reticle and zoom pivot agree through ADS, bolt, reload and display changes',async()=>{
+      const point={x:350,y:290},samples=[];
+      const sync=async(n,scope=false,fire=false,reload=false)=>page.evaluate(async({n,scope,fire,reload,point})=>{
+        const sim=await import('./js/sim.js'),view=await import('./js/render.js');
+        for(let i=0;i<n;i++){sim.step(window.__mirror,{...view.aimFromScreen(window.__mirror,point.x,point.y),scope,fire,reload:reload&&i===0});window.__frames(1);}
+      },{n,scope,fire,reload,point});
+      const move=async(x,y)=>{
+        point.x=x;point.y=y;
+        const b=await page.locator('#field').boundingBox(),scale=Math.min(b.width/1152,b.height/720);
+        await page.mouse.move(b.x+(b.width-1152*scale)/2+x*scale,b.y+(b.height-720*scale)/2+y*scale);
+      };
+      const aligned=async label=>{
+        const sample=await page.evaluate(label=>{
+          const {reticle,scene}=window.__sightDraw,b=document.querySelector('#field').getBoundingClientRect(),scale=Math.min(b.width/1152,b.height/720),p=window.__nativePointer;
+          const origin={x:b.left+(b.width-1152*scale)/2,y:b.top+(b.height-720*scale)/2},raw={x:(p.x-origin.x)/scale,y:(p.y-origin.y)/scale};
+          const drawn={x:origin.x+reticle.x*scale,y:origin.y+reticle.y*scale};
+          return {label,pointer:p,drawn,error:Math.hypot(drawn.x-p.x,drawn.y-p.y),zoom:scene.a,pivotError:Math.hypot(scene.a*raw.x+scene.e-raw.x,scene.d*raw.y+scene.f-raw.y)};
+        },label);samples.push(sample);
+        if(sample.error>1||sample.pivotError>1){await page.screenshot({path:path.join(out,'pointer-alignment-failure.png')});throw new Error(`${label}: pointer/reticle error ${sample.error.toFixed(2)} CSS px; zoom pivot error ${sample.pivotError.toFixed(2)} canvas px`);}
+      };
+      const mode=async(value,width,height)=>{
+        await page.setViewportSize({width,height});await page.locator('#display-mode').selectOption(value);
+        await page.waitForFunction(value=>document.querySelector('#display-mode').value===value&&!document.querySelector('#display-mode').disabled&&(value!=='fullscreen'||!!document.fullscreenElement),value,{polling:100});
+        await page.evaluate(async()=>{(await import('./js/sim.js')).cancelInput(window.__mirror);});
+        if(await page.locator('#pause-panel').isVisible())await click(page,'#resume');
+      };
+      try{
+        for(const [view,width,height] of [['fit',1440,1000],['fullscreen',2048,1152],['page',1280,900],['fit',844,390]]){
+          await mode(view,width,height);await move(350,290);await sync(1);await aligned(`${view} ${width}: unscoped`);
+          await key(page,'KeyQ');await key(page,'KeyQ',false);
+          for(let tick=0;tick<10;tick++){await move(350+tick*9,290+tick*4);await sync(1,true);await aligned(`${view} ${width}: scope tick ${tick+1}`);}
+          for(const [x,y] of [[760,400],[250,180],[1000,590],[430,340]]){await move(x,y);await sync(1,true);await aligned(`${view} ${width}: scoped move ${x},${y}`);}
+          if(view==='fullscreen'){
+            // Screenshots omit the OS cursor, so mark its observed event position for inspection.
+            await page.evaluate(()=>{const p=window.__nativePointer,m=document.createElement('div');m.id='cursor-proof';m.style.cssText=`position:fixed;left:${p.x}px;top:${p.y}px;width:18px;height:18px;border:2px solid #ff78dd;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9999`;document.body.append(m);});
+            await page.screenshot({path:path.join(out,'pointer-aligned-fullscreen.png')});await page.locator('#cursor-proof').evaluate(el=>el.remove());
+          }
+          await key(page,'KeyQ');await key(page,'KeyQ',false);for(let tick=0;tick<8;tick++){await sync(1);await aligned(`${view} ${width}: scope out ${tick+1}`);}
+        }
+        await mode('fit',1440,1000);await move(70,600);await key(page,'ShiftLeft');await sync(15,true);
+        await key(page,'Space');await sync(1,true,true);await key(page,'Space',false);
+        for(let tick=0;tick<60;tick++){await move(70+tick*2,600);await sync(1,true);if(tick%6===0)await aligned(`bolt tick ${tick}`);}
+        await key(page,'KeyR');await key(page,'KeyR',false);await sync(1,true,false,true);
+        for(let tick=0;tick<145;tick++){await sync(1,true);if(tick%15===0)await aligned(`reload tick ${tick}`);}
+        await key(page,'ShiftLeft',false);await sync(10);
+      }finally{fs.writeFileSync(path.join(out,'pointer-alignment.json'),JSON.stringify(samples,null,2)+'\n');}
+    });
     if(round===4)await check('rifle scope, mouse chords, one-shot trigger, touch, gamepad and cancellation work in the live fourth station',async()=>{
       const point={x:80,y:600};
       const sync=async(n,scope=false,fire=false,reload=false)=>page.evaluate(async({n,scope,fire,reload,point})=>{
@@ -282,7 +341,7 @@ try{
       await session.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
       field=await page.locator('#field').boundingBox();const fire=await page.locator('#touch-fire').boundingBox();
       const aiming={x:field.x+field.width*.5,y:field.y+field.height*.5,id:1},trigger={x:fire.x+fire.width*.5,y:fire.y+fire.height*.5,id:2};
-      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aiming]});await sync(1,true);
+      await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aiming]});point.x=576;point.y=360;await sync(1,true);
       const beforeTouch=await ammo();await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[aiming,trigger]});await sync(8,true,true);assert.equal(await ammo(),beforeTouch-1);
       await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[aiming]});await sync(60,true,true);assert.equal(await ammo(),beforeTouch-1,'aim finger release does not fire a second rifle shot');
       await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await sync(1,true);await session.send('Emulation.setTouchEmulationEnabled',{enabled:false});await session.detach();
