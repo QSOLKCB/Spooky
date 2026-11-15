@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Pure 60 Hz simulation. x = across the valley; z = towards the outpost.
 import {clamp,seededRandom} from '../vendor/vanillajs/modules/math/index.js';
-import {STATIONS,WEAPONS,ENEMIES,UPGRADES,DIFFICULTIES,stationForRound} from './content.js';
+import {STATIONS,WEAPONS,ENEMIES,UPGRADES,DIFFICULTIES,stationForRound,explosionProfile} from './content.js';
 import {freshFuel} from './world.js';
 import {launchShell,advanceShell,burst,shellCase,advanceParticles,pushEnemy,moveHorde} from './physics.js';
 export const TICK_RATE = 60;
@@ -62,9 +62,9 @@ function impact(s,shot) {
   const queue=[shot];let hits=0;
   // Each drum is marked destroyed before enqueueing; chains cannot detonate twice.
   while(queue.length){
-    const blast=queue.shift(),heavy=blast.radius>5;
+    const blast=queue.shift(),heavy=blast.radius>5,profile=explosionProfile(blast.key,blast.radius);
     const seed=(s.seed^Math.imul(s.tick,673)^Math.imul(s.fxSerial++,997))>>>0;
-    s.effects.push({type:'blast',x:blast.x,z:blast.z,radius:blast.radius,age:0,life:heavy?95:18,seed,fuel:blast.key==='fuel'});
+    s.effects.push({type:'blast',x:blast.x,z:blast.z,radius:blast.radius,weapon:blast.key,age:0,life:profile.life,seed,fuel:blast.key==='fuel'});
     s.events.push({type:'impact',heavy,x:blast.x,z:blast.z,seed,weapon:blast.key});
     burst(s,{...blast,seed});
     for(const e of s.enemies){
@@ -74,7 +74,7 @@ function impact(s,shot) {
       const falloff=heavy?1-.4*clamp(distance/blast.radius,0,1):1;
       const critical=blast.targetId===e.id&&blast.head&&(blast.key==='gatling'||blast.key==='m2');
       e.hp-=blast.damage*falloff*(critical?1.65:1);e.flash=8;hits++;
-      if(heavy)pushEnemy(e,blast.x,blast.z,16*falloff);
+      if(heavy)pushEnemy(e,blast.x,blast.z,profile.impulse*falloff);
       s.hitConfirm={tick:s.tick,critical:Boolean(critical)};
       if(e.hp<=0){
         s.kills++;s.roundKills++;s.resolved++;s.combo=s.tick<s.comboUntil?s.combo+1:1;s.comboUntil=s.tick+130;

@@ -3,7 +3,7 @@ import {ballisticStep} from '../vendor/vanillajs/modules/ballistics/index.js';
 import {moveAndSlideAABB} from '../vendor/vanillajs/modules/collision/index.js';
 import {clamp,seededRandom} from '../vendor/vanillajs/modules/math/index.js';
 import {SOLIDS} from './world.js';
-import {ENEMIES} from './content.js';
+import {ENEMIES,explosionProfile} from './content.js';
 const DT=1/60;
 export const FX_LIMITS=Object.freeze({particles:260,craters:40,remains:24});
 export function launchShell(shot,station){
@@ -22,13 +22,13 @@ export function advanceShell(shot){
   if(shot.remaining<=0&&shot.position)shot.position={x:shot.x,y:0,z:shot.z};
   return shot.remaining<=0;
 }
-export function burst(s,{x,z,radius,seed,body=null}){
-  const random=seededRandom(seed>>>0),heavy=radius>5,count=body?6:heavy?20:5;
+export function burst(s,{x,z,radius,seed,body=null,key=null}){
+  const random=seededRandom(seed>>>0),heavy=radius>5,profile=explosionProfile(key,radius),count=body?6:profile.particles;
   for(let i=0;i<count;i++){
-    const angle=random()*Math.PI*2,speed=(body?4:heavy?9:3)*(0.5+random());
+    const angle=random()*Math.PI*2,speed=(body?4:profile.throwSpeed)*(0.5+random());
     s.particles.push({x,z,y:body?2+random()*4:.3,vx:Math.cos(angle)*speed,vz:Math.sin(angle)*speed,
-      vy:(body?5:heavy?12:4)+random()*(heavy?17:8),size:body ? .7+random()*.6 : .15+random()*(heavy ? .8 : .25),
-      age:0,life:body?150:heavy?100:32,kind:body?'fragment':i%3===0?'ember':'debris',tone:body||'soil',bounce:0});
+      vy:(body?5:profile.lift)+random()*(heavy?17:8),size:body ? .7+random()*.6 : .15+random()*(heavy ? .8 : .25),
+      age:0,life:body?150:Math.max(32,profile.life+5),kind:body?'fragment':i%3===0?'ember':'debris',tone:body||'soil',bounce:0});
   }
   s.particles=s.particles.slice(-FX_LIMITS.particles);
   if(heavy&&!body){s.craters.push({x,z,radius:radius*.6,seed,age:0});s.craters=s.craters.slice(-FX_LIMITS.craters);}

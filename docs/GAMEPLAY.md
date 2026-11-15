@@ -4,7 +4,7 @@ Outpost Echo shares one integrity pool across all three stations. Protect the il
 
 ## The station rotation
 
-1. **Spectre orbit:** the 25 mm weapon handles single targets; the 40 mm trades rate for splash; the 105 mm clears clusters. Each weapon owns its ammunition, reload and firing cooldown. Switching does not refill a magazine or cancel a reload. All gunship upgrades apply to every onboard weapon.
+1. **Spectre orbit:** the 25 mm weapon handles single targets; the 40 mm rapidly clears clusters with 135 base damage and an 11-unit radius; the 105 mm delivers 400 base damage over a 26-unit radius. Its slower salvo covers about 5.6 times the nominal area of the 40 mm. Each weapon owns its ammunition, reload and firing cooldown. Switching does not refill a magazine or cancel a reload. All gunship upgrades apply to every onboard weapon.
 2. **Thunder battery:** a five-shell supply feeds the artillery. Impact is delayed, so aim along a group's approach path. The landing ellipse is a visual guide to the pending impact. Splash damage falls off towards its edge.
 3. **Last line:** the M2 hits immediately. Hold fire for bursts, release to cool and use quieter intervals to change belts. At maximum heat the weapon refuses fire until it has cooled sufficiently. Ammunition is unlimited between reloads; reloading and overheating still cost time.
 
@@ -41,7 +41,7 @@ Best scores are stored separately for Cadet, Night watch and Blackout. Sound and
 
 The header's **DISPLAY** selector offers **Fit window** (default), **Fullscreen** and **Windowed page**. Fit window contains the complete battlefield and primary controls within the screen. Native fullscreen uses the same layout. Exiting fullscreen restores your previous windowed choice; a denied request falls back to Fit window. Every change pauses combat and clears held inputs. Short-screen menus scroll internally. The field manual's fullscreen shortcut uses the same controller.
 
-Each station has its own procedural soundtrack. The field manual lets you select and download any of the three complete 32-second WAVs. Music and FX toggle independently. Weapon reports and impacts are positioned across the stereo field and attenuated with distance; headphones make the difference clearer.
+Last Light March is an original 120 BPM military-style soundtrack with marching bass drums, field snares, rolls and brass-style calls. Each station has its own deterministic arrangement of the 32-second theme. The field manual lets you select and download any of the three complete 32-second WAVs. Music and FX toggle independently. Weapon reports and impacts are positioned across the stereo field and attenuated with distance; headphones make the difference clearer.
 
 ## Input and accessibility
 

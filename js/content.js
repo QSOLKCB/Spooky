@@ -4,7 +4,7 @@ export const VERSION = '0.2.0';
 export const STATIONS = [
   {id:'gunship', short:'AC-130', name:'Spectre orbit', role:'AIR SUPPORT', tag:'01',
     description:'Watch the perimeter from above. Switch between rapid fire and heavy splash damage.',
-    tip:'Pick off heads with 25 mm. Hit marked fuel drums to set off a chain reaction.', weapons:['gatling','bofors','howitzer']},
+    tip:'25 mm for heads. 40 mm for quick clusters. 105 mm for a huge area-clearing blast.', weapons:['gatling','bofors','howitzer']},
   {id:'artillery', short:'ARTILLERY', name:'Thunder battery', role:'INDIRECT FIRE', tag:'02',
     description:'Lob high-explosive shells across the valley. Lead moving groups and make every impact count.',
     tip:'Lead moving groups. Heavy blasts stagger and push back survivors; bulwarks resist the impulse.', weapons:['battery']},
@@ -14,11 +14,18 @@ export const STATIONS = [
 ];
 export const WEAPONS = {
   gatling: {name:'25 mm Gatling', label:'25 MM', damage:30, radius:2.6, interval:7, flight:7, magazine:90, reload:95, heat:1.5},
-  bofors: {name:'40 mm cannon', label:'40 MM', damage:68, radius:5.8, interval:26, flight:22, magazine:16, reload:125, heat:0},
-  howitzer: {name:'105 mm howitzer', label:'105 MM', damage:135, radius:11, interval:100, flight:40, magazine:5, reload:155, heat:0},
+  bofors: {name:'40 mm cannon', label:'40 MM', damage:135, radius:11, interval:26, flight:22, magazine:16, reload:125, heat:0},
+  howitzer: {name:'105 mm howitzer', label:'105 MM', damage:400, radius:26, interval:100, flight:40, magazine:5, reload:155, heat:0},
   battery: {name:'155 mm field gun', label:'155 MM HE', damage:170, radius:12, interval:66, flight:55, magazine:5, reload:130, heat:0},
   m2: {name:'M2 Browning', label:'.50 BMG', damage:38, radius:3.1, interval:6, flight:0, magazine:80, reload:150, heat:3.9}
 };
+// Arcade effect profiles: the slow 105 mm gets a distinct impact, not just a longer cooldown.
+const EXPLOSIONS = {
+  light:{life:18,flameTicks:10,ringTicks:10,puffs:4,visualScale:1,plume:1,particles:5,throwSpeed:3,lift:4,impulse:0,sound:null},
+  heavy:{life:95,flameTicks:25,ringTicks:25,puffs:10,visualScale:1,plume:1,particles:20,throwSpeed:9,lift:12,impulse:16,sound:'impact'},
+  howitzer:{life:160,flameTicks:38,ringTicks:36,puffs:18,visualScale:1.35,plume:1.5,particles:48,throwSpeed:16,lift:24,impulse:26,sound:'impact105'}
+};
+export const explosionProfile=(weapon,radius)=>EXPLOSIONS[weapon==='howitzer'?'howitzer':radius>5?'heavy':'light'];
 export const ENEMIES = {
   walker: {name:'Shambler', hp:28, speed:0.043, damage:5, points:100, size:1},
   runner: {name:'Runner', hp:23, speed:0.079, damage:5, points:140, size:0.85},

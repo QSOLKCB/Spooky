@@ -25,7 +25,7 @@ test('all three complete station arrangements export distinct repeatable loops',
 class AudioMock{
   static latest;
   constructor(){AudioMock.latest=this;this.state='running';this.currentTime=0;this.destination={};this.nodes=[];this.buffers=0;this.failGain=false;}
-  createBuffer(ch,n){this.buffers++;const data=new Float32Array(n);return {getChannelData:()=>data};}
+  createBuffer(ch,n){this.buffers++;const data=new Float32Array(n);return {length:n,getChannelData:()=>data};}
   node(type){const n={type,connected:false,stopped:false,started:null,gain:{value:1},pan:{value:0},connect(){this.connected=true;},disconnect(){this.connected=false;},start(...args){this.started=args;},stop(){this.stopped=true;}};this.nodes.push(n);return n;}
   createBufferSource(){return this.node('source');}
   createGain(){if(this.failGain)throw new Error('gain unavailable');return this.node('gain');}
@@ -54,5 +54,52 @@ test('partial voice failures release allocated nodes and a new gesture recovers 
     audio.event({type:'fire',weapon:'m2'},true);assert.equal(failures,1);
     assert.ok(ctx.nodes.filter(n=>n.type==='source').every(n=>n.stopped&&!n.connected));
     ctx.failGain=false;await audio.unlock();audio.event({type:'fire',weapon:'m2'},true);assert.ok(ctx.nodes.filter(n=>n.type==='source').at(-1).started);audio.stop();
+  }finally{globalThis.AudioContext=previous;}
+});
+
+test('105 mm firing and impact have longer distinct reports, selected by real combat events',async()=>{
+  const {create,selectWeapon,step,weaponStats}=await import('../js/sim.js');
+  assert.ok(makeEffect('howitzer').frames>makeEffect('bofors').frames*2);
+  assert.ok(makeEffect('impact105').frames>makeEffect('impact').frames*2);
+  for(let variant=0;variant<4;variant++)assert.equal(hash(makeEffect('impact105',variant).wav()),hash(makeEffect('impact105',variant).wav()));
+  const previous=globalThis.AudioContext;globalThis.AudioContext=AudioMock;
+  try{
+    const audio=createAudio();await audio.unlock();const ctx=AudioMock.latest,lengths=[];
+    for(const index of [1,2]){
+      const s=create();s.fuel=[];s.nextSpawn=100000;selectWeapon(s,index);step(s,{fire:true,x:0,z:55});
+      for(let i=1;i<weaponStats(s).flight;i++)step(s);
+      const impact=s.events.find(e=>e.type==='impact');assert.ok(impact);audio.event(impact,true);
+      lengths.push(ctx.nodes.filter(n=>n.type==='source').at(-1).buffer.length);audio.stop();
+    }
+    assert.ok(lengths[1]>lengths[0]*2,'audio adapter uses the 105 mm impact recipe');
+  }finally{globalThis.AudioContext=previous;}
+});
+
+test('military march has four bounded lanes, a 120 BPM drum cadence and a phrase-ending snare roll',()=>{
+  for(const station of ['gunship','artillery','infantry']){
+    const score=makeScore(station);assert.equal(score.phraseCount,8);
+    for(let phrase=0;phrase<8;phrase++){
+      const {frames,events}=score.score(phrase);assert.equal(frames,192000);assert.ok(events.length<=128);
+      assert.deepEqual([...new Set(events.map(e=>e.channel))].sort(),[0,1,2,3]);
+      for(let beat=0;beat<8;beat++){
+        assert.ok(events.some(e=>e.channel===0&&e.sample===beat*24000&&e.frequency<60),'marching bass drum downbeat');
+        assert.ok(events.some(e=>e.channel===1&&e.sample===beat*24000&&e.wave==='noise'),'snare cadence');
+      }
+      const roll=events.filter(e=>e.channel===1&&e.sample>=168000);assert.equal(roll.length,8);
+      assert.ok(events.some(e=>e.channel===2&&['square','saw'].includes(e.wave)),'brass lead');
+      assert.ok(events.every(e=>e.sample+e.duration<=frames));
+    }
+  }
+});
+test('march PCM is identical across arbitrary phrase chunks and resumes at its exact tick offset',async()=>{
+  for(const station of ['gunship','artillery','infantry']){
+    const score=makeScore(station),start=190731,count=201337,whole=score.renderRange(start,count),chunked=new Int16Array(count);
+    for(let offset=0;offset<count;){const size=Math.min([137,4096,17001][offset%3],count-offset);chunked.set(score.renderRange(start+offset,size),offset);offset+=size;}
+    assert.deepEqual(chunked,whole);assert.deepEqual(score.renderRange(241*800,1600),score.renderPhrase(1).subarray(800,2400));
+  }
+  const previous=globalThis.AudioContext;globalThis.AudioContext=AudioMock;
+  try{
+    const audio=createAudio();await audio.unlock();const ctx=AudioMock.latest;
+    for(let retry=0;retry<2;retry++){audio.sync(241,true,'infantry');const voice=ctx.nodes.filter(n=>n.type==='source').at(-1);assert.equal(voice.started[1],800/48000);audio.stop();assert.ok(voice.stopped);}
   }finally{globalThis.AudioContext=previous;}
 });
