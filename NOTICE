@@ -1,0 +1,13 @@
+SPOOKY: Last Light
+Copyright 2026 Trent Slade / QSOL-IMC and contributors.
+Licensed under the Apache License, Version 2.0.
+
+This game incorporates unmodified VANILLAJS source from QSOLKCB/VANILLAJS,
+commit 987c8d9be0af418307ea7cda05cbf56b5f130c71 (Apache-2.0).
+Source file identities are recorded in vendor/PROVENANCE.json.
+The upstream LICENSE and full NOTICE are retained under vendor/vanillajs/.
+
+Original game code, procedural pixel artwork, instrument interface,
+sound effects and the Last Light soundtrack were made for this project.
+No Call of Duty artwork, maps, code, dialogue or music is included.
+Weapon names provide fictional arcade context, not real firing data.
