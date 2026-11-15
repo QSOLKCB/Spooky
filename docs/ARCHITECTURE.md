@@ -10,24 +10,42 @@ Combat uses ordinary JavaScript Number arithmetic. Same seed, difficulty, per-ti
 
 ## Actual VANILLAJS integration
 
-Pinned source: `QSOLKCB/VANILLAJS` at `987c8d9be0af418307ea7cda05cbf56b5f130c71`.
+Pinned source: `QSOLKCB/VANILLAJS` at `3c35784636288bafe4923537463f853b6bcf0cb4`.
 
 | Upstream file | Used for |
 | --- | --- |
 | `modules/time/index.js` | FixedClock, bounded catch-up and pause reset |
 | `modules/math/index.js` | Seeded random streams and clamping |
+| `modules/ballistics/index.js` | Gravity integration for shells, debris and ejected brass |
+| `modules/collision/index.js` | Swept AABB collision and sliding around building footprints |
 | `modules/audio2d/index.js` | Pure integer PCM effects and phrase synthesis |
 | `modules/soundtrack/index.js` | Eight-phrase score, tick positions and full-loop WAV export |
 | `api/audio/index.js` | Web Audio presentation synchronised to combat ticks |
 
 These files are vendored unmodified with the upstream LICENSE and NOTICE. `vendor/PROVENANCE.json` records source paths, the exact commit and original Git blob hashes. `node scripts/check.mjs` recomputes the object hashes from local bytes. A documented vendor update must update the pin and hashes together; do not silently patch vendor code.
 
+## Battlefield and presentation
+
+`js/world.js` owns building footprints, fuel-drum positions and three lighting palettes. `js/physics.js` applies VANILLAJS gravity to shells and debris, broad-phase collision filtering before swept AABB motion, spatial-bin crowd separation and deterministic blast impulses. Buildings block horde movement; they are not destructible projectile shields. Shell velocities are chosen to reach the selected ground point on the existing weapon flight tick. These are arcade game units.
+
+Fuel drums are marked destroyed before their blast enters the chain queue. Each can detonate once per round; it awards 25 points but never counts as a creature kill or a fired shot. Direct-fire head picking sends a target ID and world aim to the simulation. A 1.65× critical applies only to that target, only with the 25 mm/M2, and only if the actual impact is in range. Bulwark mass reduces knockback.
+
+The renderer caches terrain by station and lighting palette, then draws depth-sorted structures, drums and characters, persistent marks and live effects. Character stride comes from distance travelled. Presentation draws do not change simulation state or consume spawning randomness. There is no camera shake to offset the pointer transform. Reduced motion suppresses muzzle flashes, impact lighting pulses and gun recoil.
+
+Each station has an eight-phrase, 32-second integer PCM composition. Weapon sounds layer a crack, falling low-frequency body, debris and reflected report, with four deterministic variants. Web Audio adds stereo pan, distance gain and output compression. Music and effects remain independently switchable; station changes stop the old score. Explicit lifecycle stop releases both music and FX voices. Export selects any station's complete WAV in the field manual.
+
+## Display modes
+
+`js/display.js` is copied byte-for-byte from `QSOLKCB/Outruin` PR #4 at `94ae4abdcd3e29721d5d4f5d2415246a9551f8b9`; `vendor/OUTRUIN.json` records its Git blob identity. Spooky's layout and input integration are original. The checker verifies both upstream pins.
+
+Fit window and native fullscreen reserve room for the header, telemetry, weapon/ammo controls and touch buttons, then contain the fixed 1152×720 canvas in the remaining space. Pointer conversion uses the same contain scale and letterbox offsets. Windowed page preserves scrolling. Overlay content scrolls internally on short screens. The native fullscreen event owns the displayed state; only fit/page preferences are saved, never a fullscreen request. Changes pause combat and clear held controls. Denied/unavailable fullscreen falls back to Fit window.
+
 ## Runtime safeguards
 
 - FixedClock clamps a frame to 150 ms and executes at most eight simulation steps per animation frame. Excess wall time is dropped; it is not an enormous catch-up burst.
 - Status transitions freeze combat, with terminal loss taking precedence over a cleared wave. In-flight shells resolve before a draft opens.
 - Every station resupplies only when a round begins. Each gunship weapon owns cooldown/reload/ammunition/heat state, including while another gun is selected.
-- Enemy records disappear after death or breach; each is resolved once. Presentation effects are capped at 180; Web Audio voices at 20. Wave population increases without a fixed campaign endpoint, so extreme late-round performance has no benchmark claim.
+- Enemy records disappear after death or breach; each is resolved once. Presentation effects are capped at 180, particles at 260, craters at 40 and remains at 24; Web Audio effect voices at 24. Wave population increases without a fixed campaign endpoint, so extreme late-round performance has no benchmark claim.
 - Inputs clear on pause, focus loss, hidden tabs and page history transitions. Gamepads must return to neutral after cancellation before firing again.
 - Audio creation, playback and export errors are contained. Preferences and session fallback state are separate.
 

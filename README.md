@@ -20,13 +20,18 @@ The outpost automatically recovers 8 integrity between rounds; the incoming stat
 
 ## Included
 
-- Three distinct pixel/voxel-style views, procedural terrain, thermal imaging, visible shell flight, explosions, tracers and weapon recoil.
+- Three pixel/voxel views with articulated characters, armoured bulwarks, shaded buildings, trees, trenches, searchlights and rotating lighting palettes.
+- Gravity-driven shells and bouncing debris, blast knockback, persistent craters, fuel-drum chains, headshot bonuses, tracers and weapon recoil.
+- Enemies steer around solid buildings and separate from nearby horde members.
 - Increasing hordes, three enemy classes, three difficulty settings, chain bonuses and separate local best scores per difficulty.
 - Six upgrade choices, deterministic three-card drafts, persistent station builds and independent gunship ammunition/reload state.
-- An original 32-second procedural soundtrack, distinct weapon effects and WAV soundtrack export from the field manual.
-- Mouse, keyboard, touch and standard gamepad controls. Automatic pause on focus loss and explicit resume.
+- Three original 32-second station soundtracks, layered weapon reports, stereo positioning, bounded voices and selectable WAV export.
+- **Fit window, Fullscreen and Windowed page**, brought across from [Outruin PR #4](https://github.com/QSOLKCB/Outruin/pull/4). The full battlefield, HUD and touch controls fit within the available window.
+- Mouse, keyboard, touch and standard gamepad controls. Automatic pause on focus or display changes and explicit resume.
 - Offline caching after the first complete visit. No account, backend, CDN, runtime package install or downloaded art.
 - Pure fixed-tick combat, seeded encounters, executable tests and byte-verified VANILLAJS provenance.
+
+![Infantry at the wire — controlled visual test scene](docs/evidence/battlefield-upgrade/infantry-battlefield.jpg)
 
 ## Controls
 
@@ -40,7 +45,9 @@ The outpost automatically recovers 8 integrity between rounds; the incoming stat
 | Touch | Drag the battlefield to aim; hold the separate FIRE button |
 | Standard gamepad | Left stick aims; right trigger or A fires; X reloads; shoulders switch weapon; Start pauses |
 
-Use the mouse on the creature's visible body, or aim ahead on the ground to place a blast. There is no pointer lock. Leaving the tab clears held inputs and pauses the run.
+Use the mouse on the creature's visible body, or aim ahead on the ground to place a blast. Head hits with the 25 mm or M2 deal 1.65× damage to the selected creature. Orange fuel drums can clear a group in a chain reaction. There is no pointer lock. Leaving the tab clears held inputs and pauses the run.
+
+Use **DISPLAY** in the header to change view modes. **Fit window** is the default; **Fullscreen** requests native browser fullscreen; **Windowed page** restores scrolling. Leaving fullscreen restores the saved windowed choice. Unsupported or denied fullscreen falls back to Fit window. Changing modes pauses combat and clears held inputs; resume explicitly when ready. Short menus scroll within the battlefield.
 
 ## Run locally
 
@@ -74,12 +81,12 @@ Browser verification uses Playwright as a **development-only** tool. CI installs
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright node tests/browser.mjs
 ```
 
-`CHROMIUM_PATH` optionally selects an installed Chromium binary. Tests cover complete rounds, actual damage, draft choices, reload and heat, pause/focus cancellation, projected body picking, keyboard toolbar focus, mobile multitouch, audio failure, restart and offline operation under `/Spooky/`.
+`CHROMIUM_PATH` optionally selects an installed Chromium binary. Tests cover complete rounds, collisions, ballistics, fuel chains, headshots, draft choices, reload and heat, pause/focus cancellation, projected body picking, keyboard toolbar focus, mobile multitouch, native fullscreen, denied fullscreen, short-screen layout, three WAV exports, audio failure, restart and offline operation under `/Spooky/`. See the [upgrade validation record](docs/VALIDATION.md) for the executed scope.
 
 CI runs on every PR and main-branch push. A successful main run publishes its verified `dist/` artifact to Pages; select **GitHub Actions** as the Pages source in repository settings if the repository still uses branch-based Pages. Implementation is delivered through a PR; merging and tagging remain owner actions.
 
 ## Build your own night
 
-Game data lives in `js/content.js`; combat and wave rules in `js/sim.js`; the three views in `js/render.js`; soundtrack and effects in `js/audio.js`. These are ordinary inspectable ES modules. See [the architecture notes](docs/ARCHITECTURE.md) before changing simulation or vendor files. This release supports source edits, not an in-game mod-pack editor.
+Game data lives in `js/content.js`; combat and wave rules in `js/sim.js`; shared scenery in `js/world.js`; motion in `js/physics.js`; the three views in `js/render.js`; soundtrack and effects in `js/audio.js`. These are ordinary inspectable ES modules. See [the architecture notes](docs/ARCHITECTURE.md) before changing simulation or vendor files. This release supports source edits, not an in-game mod-pack editor.
 
 Apache-2.0. Copyright 2026 Trent Slade / QSOL-IMC and contributors. Upstream licences and notices are preserved. An original arcade game, with no Call of Duty assets, music or code; weapon names are fictional gameplay context, not real weapon training.

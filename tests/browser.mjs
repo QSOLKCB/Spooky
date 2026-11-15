@@ -66,6 +66,84 @@ try{
       }finally{await touchContext.close();}
     }
   });
+  await check('Fit window keeps the complete battlefield, HUD and controls visible on short screens',async()=>{
+    const dc=await browser.newContext({viewport:{width:1836,height:890},hasTouch:true});
+    try{
+      await dc.addInitScript(installAnimationClock);const p=await dc.newPage();p.on('pageerror',e=>receipt.errors.push(e.message));
+      await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
+      await click(p,'#sound');await click(p,'#music');await click(p,'#deploy');await frames(p,200);
+      for(const [width,height] of [[1836,890],[1366,650],[1280,600],[844,390],[320,844],[390,844],[320,568]]){
+        await p.setViewportSize({width,height});await frames(p,2);
+        const bounds=await p.evaluate(()=>({scrollW:document.documentElement.scrollWidth,scrollH:document.documentElement.scrollHeight,w:innerWidth,h:innerHeight,fit:getComputedStyle(document.querySelector('#field')).objectFit}));
+        assert.equal(bounds.fit,'contain');assert.ok(bounds.scrollW<=width&&bounds.scrollH<=height,`no page overflow at ${width}x${height}`);
+        for(const selector of ['#field','.combat-stats','.weapon-select','.ammo-panel','#display-mode','#pause','#touch-fire','#touch-reload']){
+          const b=await p.locator(selector).boundingBox();assert.ok(b&&b.width>0&&b.height>0&&b.x>=-1&&b.y>=-1&&b.x+b.width<=width+1&&b.y+b.height<=height+1,`${selector} visible at ${width}x${height}: ${JSON.stringify(b)}`);
+        }
+        await p.screenshot({path:path.join(out,`fit-${width}x${height}.png`)});
+      }
+      // Resizing preserves the contain transform used by live pointer aiming.
+      await p.setViewportSize({width:844,height:390});await frames(p,2);
+      const target=await p.evaluate(async()=>{const view=await import('./js/render.js'),b=document.querySelector('#field').getBoundingClientRect(),q=view.project('gunship',17,55),scale=Math.min(b.width/1152,b.height/720);return {x:b.left+(b.width-1152*scale)/2+q.x*scale,y:b.top+(b.height-720*scale)/2+q.y*scale};});
+      await p.mouse.move(target.x,target.y);await key(p,'Space');await frames(p,8);await key(p,'Space',false);assert.ok(Number(await p.locator('#ammo').textContent())<90);
+    }finally{await dc.close();}
+  });
+  await check('native fullscreen enters and exits through one controller, pauses combat and clears held fire',async()=>{
+    const dc=await browser.newContext({viewport:{width:1280,height:600}});
+    try{
+      await dc.addInitScript(installAnimationClock);const p=await dc.newPage();p.on('pageerror',e=>receipt.errors.push(e.message));
+      await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});await click(p,'#sound');await click(p,'#music');
+      await p.locator('#display-mode').selectOption('page');await p.waitForFunction(()=>!document.querySelector('#display-mode').disabled,{},{polling:100});
+      await click(p,'#deploy');await frames(p,80);await key(p,'Space');await frames(p,8);
+      await p.locator('#display-mode').selectOption('fullscreen');
+      await p.waitForFunction(()=>document.fullscreenElement&&document.querySelector('#display-mode').value==='fullscreen'&&!document.querySelector('#display-mode').disabled,{},{polling:100});
+      assert.ok(await p.locator('#pause-panel').isVisible());const ammo=await p.locator('#ammo').textContent();await frames(p,200);assert.equal(await p.locator('#ammo').textContent(),ammo);
+      await click(p,'#resume');await frames(p,30);assert.equal(await p.locator('#ammo').textContent(),ammo,'display change clears held fire');
+      await p.evaluate(()=>document.exitFullscreen());await p.waitForFunction(()=>!document.fullscreenElement&&document.querySelector('#display-mode').value==='page',{},{polling:100});
+      assert.ok(await p.locator('#pause-panel').isVisible());assert.equal(await p.evaluate(()=>document.body.classList.contains('fit-screen')),false);
+      await click(p,'#quit');await click(p,'#manual-open');await p.locator('#fullscreen').click();
+      await p.waitForFunction(()=>!!document.fullscreenElement,{},{polling:100});assert.equal(await p.locator('#display-mode').inputValue(),'fullscreen');
+      await p.locator('#fullscreen').click();await p.waitForFunction(()=>!document.fullscreenElement,{},{polling:100});assert.equal(await p.locator('#display-mode').inputValue(),'page');
+      await click(p,'#manual-close');await p.locator('#display-mode').selectOption('fit');
+    }finally{await dc.close();}
+  });
+  await check('fullscreen denial falls back to Fit window; window preference persists and short menus scroll',async()=>{
+    const dc=await browser.newContext({viewport:{width:844,height:390},hasTouch:true});
+    try{
+      await dc.addInitScript(installAnimationClock);const p=await dc.newPage();p.on('pageerror',e=>receipt.errors.push(e.message));
+      await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
+      await p.evaluate(()=>{document.documentElement.requestFullscreen=()=>Promise.reject(new Error('denied'));});
+      await p.locator('#display-mode').selectOption('fullscreen');await p.waitForFunction(()=>!document.querySelector('#display-mode').disabled,{},{polling:100});
+      assert.equal(await p.locator('#display-mode').inputValue(),'fit');assert.match(await p.locator('#display-feedback').textContent(),/unavailable/);
+      await p.locator('#manual-open').scrollIntoViewIfNeeded();await p.locator('#manual-open').click();await click(p,'#manual-close');
+      await p.locator('#deploy').scrollIntoViewIfNeeded();await p.locator('#deploy').click();await frames(p,30);
+      await key(p,'KeyP');await p.locator('#resume').scrollIntoViewIfNeeded();await p.locator('#resume').click();await frames(p,10);assert.ok(await p.locator('#overlay').isHidden());
+      await p.locator('#display-mode').selectOption('page');await p.reload();await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
+      assert.equal(await p.locator('#display-mode').inputValue(),'page');assert.equal(await p.evaluate(()=>Boolean(document.fullscreenElement)),false);
+      await p.locator('#display-mode').selectOption('fit');await p.reload();await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});assert.equal(await p.locator('#display-mode').inputValue(),'fit');
+    }finally{await dc.close();}
+  });
+  await check('all station scenes render gravity debris, fuel chains and distinct enemy silhouettes without mutating combat',async()=>{
+    const vc=await browser.newContext({viewport:{width:1440,height:1000}});
+    try{
+      await vc.addInitScript(installAnimationClock);const p=await vc.newPage();p.on('pageerror',e=>receipt.errors.push(e.message));
+      await p.goto(url);await p.waitForFunction(()=>document.querySelector('#weapon-select button'),{},{polling:100});
+      for(const [round,station,weapon] of [[1,'gunship','howitzer'],[2,'artillery','battery'],[3,'infantry','m2']]){
+        const capture=await p.evaluate(async({round,station,weapon})=>{
+          const {create,step}=await import('./js/sim.js'),{createRenderer,project}=await import('./js/render.js');
+          const s=create();s.round=round;s.station=station;s.weapon=weapon;s.nextSpawn=100000;
+          s.enemies=Array.from({length:24},(_,i)=>({id:i+1,kind:['walker','runner','brute'][i%3],x:(i%8-3.5)*7,z:42+Math.floor(i/8)*12,hp:600,maxHp:600,speed:.03,phase:i,flash:0,variant:i%4}));
+          for(let i=0;i<2;i++)step(s,{x:-12,z:43,fire:i===0});for(let i=0;i<54;i++)step(s);
+          // Physical scenery fixture: all visual effects were produced by actual sim steps.
+          if(station==='infantry'){s.weapons.m2.cooldown=0;step(s,{x:3,z:48,fire:true});}
+          const canvas=document.createElement('canvas'),renderer=createRenderer(canvas),before=JSON.stringify(s);renderer.draw(s,{cursor:project(station,-12,43)});
+          if(JSON.stringify(s)!==before)throw new Error('renderer mutated simulation');
+          const first=canvas.toDataURL();renderer.draw(s,{cursor:project(station,-12,43)});if(first!==canvas.toDataURL())throw new Error('same tick rendered differently');
+          return canvas.toDataURL('image/jpeg',.9);
+        },{round,station,weapon});
+        fs.writeFileSync(path.join(out,`${station}-battlefield.jpg`),Buffer.from(capture.split(',')[1],'base64'));
+      }
+    }finally{await vc.close();}
+  });
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
   page.on('pageerror',e=>receipt.errors.push(e.message));
   await context.addInitScript(installAnimationClock);
@@ -76,6 +154,16 @@ try{
     await click(page,'#manual-open');assert.ok(await page.locator('#manual').isVisible());await click(page,'#manual-close');
     await click(page,'#sound');await click(page,'#music');await click(page,'#deploy');await frames(page,120);
     assert.ok(await page.locator('#overlay').isHidden());assert.equal(await page.locator('#round').textContent(),'01');
+  });
+  await check('field manual exports the selected complete station soundtrack',async()=>{
+    const {makeScore}=await import('../js/audio.js');
+    await key(page,'KeyP');await click(page,'#quit');await click(page,'#manual-open');
+    for(const station of ['gunship','artillery','infantry']){
+      await page.locator('#soundtrack').selectOption(station);const pending=page.waitForEvent('download');await page.locator('#download-music').click();
+      const download=await pending;assert.equal(download.suggestedFilename(),`spooky-${station}-last-light.wav`);
+      assert.deepEqual(fs.readFileSync(await download.path()),Buffer.from(makeScore(station).wav()));
+    }
+    await click(page,'#manual-close');await click(page,'#deploy');await frames(page,120);
   });
   await check('Space still fires after toolbar clicks; weapon and reload controls work',async()=>{
     const before=Number(await page.locator('#ammo').textContent());await key(page,'Space');await frames(page,8);await key(page,'Space',false);assert.ok(Number(await page.locator('#ammo').textContent())<before);

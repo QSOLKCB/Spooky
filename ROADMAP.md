@@ -10,13 +10,23 @@
 - [x] Mouse, keyboard, touch and standard gamepad input paths.
 - [x] Offline cache, provenance verification and browser/CI checks.
 
+## v0.2.0 — Fire in the valley
+
+- [x] Outruin-style Fit window / Fullscreen / Windowed page controller.
+- [x] Whole-game fit at desktop, short laptop, portrait and landscape touch sizes.
+- [x] VANILLAJS ballistic shell/debris motion and building collision.
+- [x] Horde steering, blast knockback, direct-fire headshots and fuel chains.
+- [x] Articulated characters, richer terrain, persistent impact marks and layered explosions.
+- [x] Station-specific soundtracks, layered spatial FX and three WAV exports.
+- [x] Seeded physics/audio checks and browser fullscreen/layout/visual evidence.
+
 ## Possible next operations — not implemented
 
 - Data-only mod packs and an in-game operation/upgrade editor.
-- More outposts, destructible scenery, hazards and boss waves.
+- More outpost layouts, destructible buildings and boss waves.
 - Replay export/import with explicit versioned command records.
 - Controller calibration and physical-device compatibility evidence.
-- Longer soundtrack variations and adaptive intensity layers.
+- Longer compositions and adaptive musical intensity layers.
 - Additional aircraft and infantry weapons with distinct upgrade branches.
 
 Balance changes should follow actual play reports, with seed, difficulty and round attached when possible.

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 // All weapons and enemies are fictional arcade abstractions, not firing tables.
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 export const STATIONS = [
   {id:'gunship', short:'AC-130', name:'Spectre orbit', role:'AIR SUPPORT', tag:'01',
     description:'Watch the perimeter from above. Switch between rapid fire and heavy splash damage.',
-    tip:'Use 25 mm on stragglers. Switch to 105 mm when the horde bunches up.', weapons:['gatling','bofors','howitzer']},
+    tip:'Pick off heads with 25 mm. Hit marked fuel drums to set off a chain reaction.', weapons:['gatling','bofors','howitzer']},
   {id:'artillery', short:'ARTILLERY', name:'Thunder battery', role:'INDIRECT FIRE', tag:'02',
     description:'Lob high-explosive shells across the valley. Lead moving groups and make every impact count.',
-    tip:'Shells take a moment to land. Aim ahead of the horde, towards the outpost.', weapons:['battery']},
+    tip:'Lead moving groups. Heavy blasts stagger and push back survivors; bulwarks resist the impulse.', weapons:['battery']},
   {id:'infantry', short:'M2 .50 CAL', name:'Last line', role:'GROUND DEFENCE', tag:'03',
     description:'Take the gun at the wire. Hold the line, change belts and keep the barrel cool.',
-    tip:'Fire in bursts to manage heat. Reload between groups before the belt runs dry.', weapons:['m2']}
+    tip:'Aim for heads with the M2. Fire in bursts, and use fuel drums when the horde clusters.', weapons:['m2']}
 ];
 export const WEAPONS = {
   gatling: {name:'25 mm Gatling', label:'25 MM', damage:30, radius:2.6, interval:7, flight:7, magazine:90, reload:95, heat:1.5},
