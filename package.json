@@ -1,0 +1,14 @@
+{
+  "name": "spooky-last-light",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An offline-first horde defence game built with VANILLAJS",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/build.mjs",
+    "test:browser": "node tests/browser.mjs"
+  }
+}

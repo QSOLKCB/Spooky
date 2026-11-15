@@ -1,0 +1,43 @@
+{
+  "repository": "QSOLKCB/VANILLAJS",
+  "commit": "987c8d9be0af418307ea7cda05cbf56b5f130c71",
+  "license": "Apache-2.0",
+  "modified": false,
+  "files": [
+    {
+      "path": "vendor/vanillajs/modules/time/index.js",
+      "source": "modules/time/index.js",
+      "gitBlob": "60c1532aaaac36beceb3e81f1a935c59478976b2"
+    },
+    {
+      "path": "vendor/vanillajs/modules/audio2d/index.js",
+      "source": "modules/audio2d/index.js",
+      "gitBlob": "698d2cf9238999cbd6dfd50010c7ba3e49bc5e3a"
+    },
+    {
+      "path": "vendor/vanillajs/modules/soundtrack/index.js",
+      "source": "modules/soundtrack/index.js",
+      "gitBlob": "add66c6382508fef3e2363c4f7a0d040a46fb286"
+    },
+    {
+      "path": "vendor/vanillajs/api/audio/index.js",
+      "source": "api/audio/index.js",
+      "gitBlob": "b1f15bd92d38fde942d55460fbe7374dc7780dc0"
+    },
+    {
+      "path": "vendor/vanillajs/modules/math/index.js",
+      "source": "modules/math/index.js",
+      "gitBlob": "45e5fc4d6c6daa472a89fa59c80e6fd70b2c1455"
+    },
+    {
+      "path": "vendor/vanillajs/LICENSE",
+      "source": "LICENSE",
+      "gitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    },
+    {
+      "path": "vendor/vanillajs/NOTICE",
+      "source": "NOTICE",
+      "gitBlob": "e3a3a4b2994a3c257c5570b16733d18d6cec0d22"
+    }
+  ]
+}

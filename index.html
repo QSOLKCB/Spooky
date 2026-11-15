@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111713">
+  <meta name="description" content="Three stations. One last line. An offline horde defence game built with VANILLAJS. Command an AC-130, artillery battery and M2 .50 cal.">
+  <title>SPOOKY — Last Light</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="Spooky home"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 24 17 36 22 36 27 23 24 23 32 28 35 28 38 20 36 12 38 12 35 17 32 17 24 4 27 4 22 16 17Z"/></svg><span>SPOOKY<small>LAST LIGHT</small></span></a>
+    <div class="station-route" aria-label="Station rotation"><span data-station="gunship" class="current"><i>01</i> GUNSHIP</span><b>→</b><span data-station="artillery"><i>02</i> ARTILLERY</span><b>→</b><span data-station="infantry"><i>03</i> INFANTRY</span></div>
+    <div class="header-actions"><button id="sound" aria-pressed="true" title="Toggle sound effects">FX ON</button><button id="music" aria-pressed="true" title="Toggle soundtrack">MUSIC ON</button><button id="pause" disabled title="Pause (P / Esc)">Ⅱ <span>PAUSE</span></button></div>
+  </header>
+  <main class="game-layout">
+    <section class="combat-column" aria-label="Combat">
+      <div class="combat-stats">
+        <div class="round-stat"><span class="label">ROUND</span><strong id="round">01</strong></div>
+        <div class="threat-stat"><span class="label">CONTACTS REMAINING</span><strong id="horde">24</strong><span class="wave-line"><i id="wave-progress"></i></span></div>
+        <div class="integrity-stat"><span class="label">OUTPOST INTEGRITY</span><strong id="integrity">100<span>%</span></strong><span class="health-line"><i id="health-progress"></i></span></div>
+      </div>
+      <div class="viewport" id="viewport">
+        <canvas id="field" width="1152" height="720" tabindex="0" aria-label="Battlefield. Aim with the pointer or WASD and arrow keys. Hold mouse or Space to fire. R reloads."></canvas>
+        <div id="notice" role="status" aria-live="polite"></div>
+        <div class="overlay" id="overlay">
+          <section class="panel briefing" id="briefing" aria-labelledby="brief-title">
+            <p class="eyebrow"><span class="live-dot"></span> OUTPOST ECHO / EMERGENCY TRANSMISSION</p>
+            <h1 id="brief-title">THE NIGHT<br>IS <em>NOT EMPTY.</em></h1>
+            <p class="intro">Three stations. One last line.<br>Rain fire from above, work the artillery,<br>then meet the horde at the wire.</p>
+            <div class="brief-rules"><span><b>01</b> Clear the wave</span><span><b>02</b> Choose an upgrade</span><span><b>03</b> Change stations</span></div>
+            <div class="setup"><label>OPERATION<select id="difficulty"><option value="cadet">Cadet · reduced pressure</option><option value="night" selected>Night watch · standard</option><option value="blackout">Blackout · hard</option></select></label><label>SEED<input id="seed" type="number" min="0" max="4294967295" step="1" value="13013" inputmode="numeric"></label></div>
+            <button class="primary deploy" id="deploy">DEPLOY TO GUNSHIP <span>↗</span></button>
+            <p class="brief-foot">HOLD TO FIRE <span>·</span> R TO RELOAD <span>·</span> SURVIVE AS LONG AS YOU CAN</p>
+            <button class="text-button" id="manual-open">READ THE FIELD MANUAL ↗</button>
+          </section>
+          <section class="panel upgrade-panel" id="upgrade-panel" hidden aria-labelledby="upgrade-title">
+            <p class="eyebrow">PERIMETER SECURED / RESUPPLY AVAILABLE</p>
+            <h2 id="upgrade-title">MAKE IT COUNT.</h2><p id="upgrade-info"></p>
+            <div id="upgrade-cards"></div><p class="brief-foot" id="next-station"></p>
+          </section>
+          <section class="panel pause-panel" id="pause-panel" hidden aria-labelledby="pause-title">
+            <p class="eyebrow">CHANNEL ON HOLD</p><h2 id="pause-title">TAKE A BREATHER.</h2><p>The horde can wait. Your run is paused.</p><button class="primary" id="resume">RESUME OPERATION →</button><button class="secondary" id="quit">END RUN & RETURN TO BRIEFING</button>
+          </section>
+          <section class="panel result-panel" id="result-panel" hidden aria-labelledby="result-title">
+            <p class="eyebrow">SIGNAL LOST / OUTPOST OVERRUN</p><h2 id="result-title">UNTIL THE<br>LAST ROUND.</h2><p id="result-summary"></p><div class="result-score"><span class="label">FINAL SCORE</span><strong id="final-score">0</strong></div><p id="best-score"></p><button class="primary" id="retry">DEPLOY AGAIN →</button><button class="secondary" id="result-menu">RETURN TO BRIEFING</button>
+          </section>
+        </div>
+        <noscript><p class="noscript">SPOOKY needs JavaScript enabled to run its local game simulation.</p></noscript>
+      </div>
+      <div class="combat-footer"><span><i class="live-dot"></i> <span id="channel">SPECTRE 01 / AWAITING DEPLOYMENT</span></span><span id="combo">NO ONE GETS THROUGH.</span></div>
+      <div class="touch-controls"><button id="touch-reload">↻ RELOAD</button><span>DRAG TO AIM</span><button id="touch-fire">HOLD TO FIRE</button></div>
+    </section>
+    <aside class="command-panel" aria-label="Station and weapon controls">
+      <div class="station-heading"><span class="label" id="role">AIR SUPPORT</span><span class="station-number" id="station-number">01</span><h2 id="station-title">SPECTRE<br>ORBIT.</h2><p id="station-description">You are the eye in the sky.<br>Keep the perimeter clean.</p></div>
+      <div class="weapon-select" id="weapon-select" aria-label="Select weapon"></div>
+      <div class="ammo-panel"><span class="label" id="weapon-name">25 mm Gatling</span><div class="ammo-readout"><strong id="ammo">90</strong><span>/ <b id="capacity">90</b></span><button id="reload" title="Reload (R)">↻</button></div><div class="weapon-meter"><i id="weapon-progress"></i></div><div class="meter-label"><span id="weapon-status">WEAPON READY</span><span id="heat">0% HEAT</span></div></div>
+      <div class="tip"><span class="label">OPERATOR NOTE</span><p id="tip">Use 25 mm on stragglers. Switch to 105 mm when the horde bunches up.</p></div>
+      <div class="run-stats"><div><span class="label">CONFIRMED</span><strong id="kills">0</strong></div><div><span class="label">SCORE</span><strong id="score">000000</strong></div></div>
+      <div class="upgrades-list"><span class="label">STATION UPGRADES</span><p id="upgrades">No upgrades installed. Earn your first.</p></div>
+      <div class="side-footer">BUILT WITH <b>VANILLAJS</b><span>QSOL-IMC / 2026</span></div>
+    </aside>
+  </main>
+  <footer class="page-footer"><span><kbd>MOUSE</kbd> AIM & FIRE <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> GUNSHIP WEAPONS <kbd>R</kbd> RELOAD <kbd>P</kbd> PAUSE</span><span id="local-status">LOCAL OPERATION / NO ACCOUNT REQUIRED</span></footer>
+  <dialog id="manual" aria-labelledby="manual-title"><button class="close" id="manual-close" aria-label="Close field manual">×</button><p class="eyebrow">FIELD MANUAL / REV 01</p><h2 id="manual-title">HOLD OUTPOST ECHO.</h2><p>Destroy the fictional undead horde before it crosses the illuminated wire. Every breach damages the shared outpost. Zero integrity ends the run.</p><ol><li><b>AC-130 gunship:</b> top-down thermal view. Use 1 / 2 / 3 to select the 25 mm, 40 mm or 105 mm weapon. Heavy shells deal splash damage.</li><li><b>Artillery:</b> lead approaching groups. The landing ring marks where a shell will impact after its flight.</li><li><b>M2 .50 cal:</b> defend from ground level. Fire short bursts, watch heat and reload the belt between groups.</li></ol><p>After each round, choose one of three upgrades for the station you just used. It stays installed when that station returns. The outpost automatically recovers 8 integrity and weapons are resupplied. Hordes grow every round; runners arrive in round 2, bulwarks from round 3.</p><p><b>Controls:</b> point and hold left mouse / Space to fire; arrows or WASD move the aim; R reloads; P or Esc pauses. On touch screens, drag the battlefield to aim and hold FIRE. A connected standard gamepad uses the left stick, right trigger or A to fire, X to reload, shoulders to select and Start to pause.</p><p>Leaving the window pauses your run. Sound starts only after deployment. Your best score and sound preferences stay on this device. A local server is needed for downloaded ES modules; after the first full visit, offline play is available.</p><button class="secondary" id="download-music">DOWNLOAD ORIGINAL SOUNDTRACK · WAV</button><p class="fine-print">An original arcade game. No Call of Duty assets, music or code. Not a real weapon simulation.</p></dialog>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
